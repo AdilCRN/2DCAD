@@ -1,8 +1,8 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using MSolvLib.Classes.MarkGeometries.Classes.Helpers;
+﻿using MSolvLib.Classes.MarkGeometries.Classes.Helpers;
 using netDxf.Entities;
 using System;
 using System.Drawing;
+using System.Numerics;
 
 namespace MSolvLib.MarkGeometry
 {
@@ -19,7 +19,7 @@ namespace MSolvLib.MarkGeometry
         Color? Stroke { get; set; }
         float Transparency { get; set; }
 
-        void Transform(Matrix<double> transformationMatrixIn);
+        void Transform(Matrix4x4 transformationMatrixIn);
 
         void Draw2D(IMarkGeometryVisualizer2D view);
         void Draw2D(IMarkGeometryVisualizer2D view, bool shouldShowVertex);

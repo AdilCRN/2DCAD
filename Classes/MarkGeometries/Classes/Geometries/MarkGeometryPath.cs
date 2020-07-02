@@ -1,9 +1,9 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using netDxf.Entities;
+﻿using netDxf.Entities;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
@@ -16,10 +16,32 @@ namespace MSolvLib.MarkGeometry
 
         public override string Name => "Path";
         public MarkGeometryPoint CentrePoint { get; set; } = new MarkGeometryPoint(); 
-        public List<MarkGeometryLine> Lines { get; set; } = new List<MarkGeometryLine>();
+        public List<MarkGeometryPoint> Points { get; set; } = new List<MarkGeometryPoint>();
         public bool IsClosed { get; set; } = false;
         public override double Area { get; protected set; } = 0;
         public override double Perimeter { get; protected set; } = 0;
+
+        public MarkGeometryPoint StartPoint
+        {
+            get
+            {
+                if (Points.Count <= 0)
+                    return null;
+
+                return Points[0];
+            }
+        }
+
+        public MarkGeometryPoint EndPoint
+        {
+            get
+            {
+                if (Points.Count <= 0)
+                    return null;
+
+                return Points[Points.Count - 1];
+            }
+        }
 
         public MarkGeometryPath()
             : base()
@@ -35,7 +57,7 @@ namespace MSolvLib.MarkGeometry
             : base(input)
         {
             IsClosed = !!input.IsClosed;
-            Lines = input.Lines.ConvertAll(line => (MarkGeometryLine)line.Clone());
+            Points = input.Points.ConvertAll(point => (MarkGeometryPoint)point.Clone());
             CentrePoint = (MarkGeometryPoint) input.CentrePoint.Clone();
 
             Update();
@@ -44,7 +66,8 @@ namespace MSolvLib.MarkGeometry
         public MarkGeometryPath(MarkGeometryLine line)
             : base()
         {
-            Lines.Add(line);
+            Points.Add(line.StartPoint);
+            Points.Add(line.EndPoint);
             CentrePoint = line.GetMidpoint();
 
             IsClosed = false;
@@ -54,28 +77,16 @@ namespace MSolvLib.MarkGeometry
         public MarkGeometryPath(LwPolyline lwPolyline)
             : base()
         {
-            for (int i = 0; i < lwPolyline.Vertexes.Count()-1; i++)
-            {
-                Lines.Add(
-                    new MarkGeometryLine(
-                        new MarkGeometryPoint(lwPolyline.Vertexes[i]),
-                        new MarkGeometryPoint(lwPolyline.Vertexes[i + 1])
-                    )
-                );
-            }
+            Points.AddRange(
+                lwPolyline.Vertexes.ConvertAll(v => new MarkGeometryPoint(v))
+            );
 
-            if (lwPolyline.IsClosed && lwPolyline.Vertexes.Count() > 1)
+            if (
+                lwPolyline.IsClosed &&
+                GeometricArithmeticModule.Compare(StartPoint, EndPoint, ClosureTolerance) != 0)
             {
-                Lines.Add(
-                    new MarkGeometryLine(
-                        new MarkGeometryPoint(lwPolyline.Vertexes[lwPolyline.Vertexes.Count() - 1]),
-                        new MarkGeometryPoint(lwPolyline.Vertexes[0])
-                    )
-                );
+                Points.Add((MarkGeometryPoint)StartPoint.Clone());
             }
-
-            //Color = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, lwPolyline.Color.R, lwPolyline.Color.G, lwPolyline.Color.B));
-            //Transparency = lwPolyline.Transparency.Value;
 
             // TODO : Calculate centroid
             CentrePoint = new MarkGeometryPoint();
@@ -85,28 +96,16 @@ namespace MSolvLib.MarkGeometry
         public MarkGeometryPath(Polyline polyline)
             : base()
         {
-            for (int i = 0; i < polyline.Vertexes.Count()-1; i++)
-            {
-                Lines.Add(
-                    new MarkGeometryLine(
-                        new MarkGeometryPoint(polyline.Vertexes[i].Position),
-                        new MarkGeometryPoint(polyline.Vertexes[i + 1].Position)
-                    )
-                );
-            }
+            Points.AddRange(
+                polyline.Vertexes.Select(v => new MarkGeometryPoint(v.Position))
+            );
 
-            if (polyline.IsClosed && polyline.Vertexes.Count() > 1)
+            if (
+                polyline.IsClosed &&
+                GeometricArithmeticModule.Compare(StartPoint, EndPoint, ClosureTolerance) != 0)
             {
-                Lines.Add(
-                    new MarkGeometryLine(
-                        new MarkGeometryPoint(polyline.Vertexes[polyline.Vertexes.Count() - 1].Position),
-                        new MarkGeometryPoint(polyline.Vertexes[0].Position)
-                    )
-                );
+                Points.Add((MarkGeometryPoint)StartPoint.Clone());
             }
-
-            //Color = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, polyline.Color.R, polyline.Color.G, polyline.Color.B));
-            //Transparency = polyline.Transparency.Value;
 
             // TODO : Calculate centroid
             CentrePoint = new MarkGeometryPoint();
@@ -116,24 +115,50 @@ namespace MSolvLib.MarkGeometry
         public MarkGeometryPath(params MarkGeometryLine[] lines)
             : base()
         {
-            Lines = new List<MarkGeometryLine>(lines);
+            if (lines != null && lines.Length > 0)
+            {
+                Points.Add(lines[0].StartPoint);
+                for (int i=0; i<lines.Length; i++)
+                {
+                    Points.Add(lines[i].EndPoint);
+                }
+            }
 
             // TODO : Calculate centroid
             CentrePoint = new MarkGeometryPoint();
             Update();
         }
 
+        public MarkGeometryPath(IEnumerable<MarkGeometryLine> lines)
+            : this(lines.ToArray())
+        {
+        }
+
         public MarkGeometryPath(params MarkGeometryPoint[] points)
             : base()
         {
-            FromPoints(points);
+            Points.AddRange(points);
+
+            // TODO : Calculate centroid
+            CentrePoint = new MarkGeometryPoint();
+            Update();
+        }
+
+        public MarkGeometryPath(IEnumerable<MarkGeometryPoint> points)
+            : base()
+        {
+            Points.AddRange(points);
+
+            // TODO : Calculate centroid
+            CentrePoint = new MarkGeometryPoint();
+            Update();
         }
 
 
         public MarkGeometryPath(MarkGeometryArc arc)
             : base()
         {
-            Lines = new List<MarkGeometryLine>((MarkGeometryLine[])arc);
+            Points.AddRange((MarkGeometryPoint[])arc);
             CentrePoint = arc.CentrePoint;
             Fill = arc.Fill;
             Stroke = arc.Stroke;
@@ -145,8 +170,10 @@ namespace MSolvLib.MarkGeometry
             : base()
         {
             int nSegments = (int) Math.Floor(GeometricArithmeticModule.CalculatePerimeter(arc) / minimumFacetLength);
-            Lines = GeometricArithmeticModule.SplitGeometry(arc, nSegments);
+            Points.AddRange((MarkGeometryPoint[])arc);
             CentrePoint = arc.CentrePoint;
+            Fill = arc.Fill;
+            Stroke = arc.Stroke;
 
             Update();
         }
@@ -154,7 +181,7 @@ namespace MSolvLib.MarkGeometry
         public MarkGeometryPath(MarkGeometryCircle circle)
             : base()
         {
-            Lines = GeometricArithmeticModule.SplitGeometry(circle, circle.VertexCount);
+            Points.AddRange((MarkGeometryPoint[])circle);
             CentrePoint = circle.CentrePoint;
             Fill = circle.Fill;
             Stroke = circle.Stroke;
@@ -166,7 +193,7 @@ namespace MSolvLib.MarkGeometry
             : base()
         {
             int nSegments = (int)Math.Floor(GeometricArithmeticModule.CalculatePerimeter(circle) / minimumFacetLength);
-            Lines = GeometricArithmeticModule.SplitGeometry(circle, nSegments);
+            Points.AddRange(GeometricArithmeticModule.Explode(circle, nSegments + 1));
             CentrePoint = circle.CentrePoint;
 
             Update();
@@ -174,83 +201,44 @@ namespace MSolvLib.MarkGeometry
 
         public static explicit operator MarkGeometryPoint[](MarkGeometryPath path)
         {
-            List<MarkGeometryPoint> points = new List<MarkGeometryPoint>();
-
-            if (path.Lines.Count > 0)
-            {
-                points.Add(path.Lines[0].StartPoint);
-
-                foreach (var line in path.Lines)
-                {
-                    points.Add(line.EndPoint);
-                }
-            }
-
-            return points.ToArray();
+            return path.Points.ToArray();
         }
 
         public static explicit operator List<MarkGeometryPoint>(MarkGeometryPath path)
         {
-            List<MarkGeometryPoint> points = new List<MarkGeometryPoint>();
-
-            if (path.Lines.Count > 0)
-            {
-                points.Add(path.Lines[0].StartPoint);
-
-                foreach (var line in path.Lines)
-                {
-                    points.Add(line.EndPoint);
-                }
-            }
-
-            return points;
+            return path.Points;
         }
 
         public static explicit operator List<PointF>(MarkGeometryPath path)
         {
-            var points = new List<PointF>();
-
-            if (path.Lines.Count > 0)
-            {
-                points.Add(path.Lines[0].StartPoint);
-
-                foreach (var line in path.Lines)
-                {
-                    points.Add(line.EndPoint);
-                }
-            }
-
-            return points;
+            return path.Points.ConvertAll(p => (PointF)p);
         }
 
         public void Merge(MarkGeometryPath path)
         {
-            if (Lines.Count() <= 0)
-            {
-                Lines = path.Lines;
-                CentrePoint = path.CentrePoint;
-                
-            }
-            else if (Lines.Count() > 0 && path.Lines.Count() > 0)
-            {
-                MarkGeometryPoint currentEndpoint = Lines[Lines.Count() - 1].EndPoint;
-                MarkGeometryPoint nextStartEndpoint = path.Lines[0].StartPoint;
 
-                if (GeometricArithmeticModule.Compare(currentEndpoint, nextStartEndpoint) != 0)
-                {
-                    Lines.Add(new MarkGeometryLine(currentEndpoint, nextStartEndpoint));
-                }
+            if (
+                GeometricArithmeticModule.Compare(EndPoint, path.StartPoint, ClosureTolerance) == 0
+            )
+            {
+                // skip the path's start point if its the
+                // same as this path's end point
+                Points.AddRange(path.Points.Skip(1));
+            }
+            else
+            {
+                Points.AddRange(path.Points);
             }
 
-            Lines.AddRange(path.Lines);
+            
             Update();
         }
 
         public override void SetFill(Color? colorIn)
         {
-            Parallel.ForEach(Lines, (line) =>
+            Parallel.ForEach(Points, (point) =>
             {
-                line.SetFill(colorIn);
+                point.SetFill(colorIn);
             });
 
             base.SetFill(colorIn);
@@ -258,9 +246,9 @@ namespace MSolvLib.MarkGeometry
 
         public override void SetStroke(Color? colorIn)
         {
-            Parallel.ForEach(Lines, (line) =>
+            Parallel.ForEach(Points, (point) =>
             {
-                line.SetStroke(colorIn);
+                point.SetStroke(colorIn);
             });
 
             base.SetStroke(colorIn);
@@ -273,24 +261,26 @@ namespace MSolvLib.MarkGeometry
 
         public override void Update()
         {
-            IsClosed = (Lines.Count > 2) &&
+            // you need at least four points to
+            // make a filled path
+            IsClosed = (Points.Count >= 4) &&
                 GeometricArithmeticModule.Compare(
-                    Lines.First().StartPoint,
-                    Lines.Last().EndPoint,
+                    StartPoint,
+                    EndPoint,
                     ClosureTolerance
                 ) == 0;
 
             // Perimeter is calculated within SetExtents
             SetExtents();
 
-            if (Lines.Count <= 0)
+            if (Points.Count < 2)
             {
-                Area = 0;
+                Area = 0; // same as point
                 return;
             }
-            else if (Lines.Count <= 1)
+            else if (Points.Count < 4)
             {
-                Area = Lines[0].Area;
+                Area = Extents.Hypotenuse * Double.Epsilon; // same as line
                 return;
             }
 
@@ -298,20 +288,16 @@ namespace MSolvLib.MarkGeometry
             double A = 0;
             double B = 0;
 
-            var __points = (List<MarkGeometryPoint>)this;
+            for(var i=0; i< Points.Count - 1; i++)
+            {
+                A += Points[i].X * Points[i+1].Y;
+                B += Points[i].Y * Points[i+1].X;
+            }
 
             if (!IsClosed)
             {
-                __points.Add(__points[0]);
-            }
-
-            for(var i=0; i< __points.Count - 1; i++)
-            {
-                var currPoint = __points[i];
-                var nxtPoint = __points[i + 1];
-
-                A += currPoint.X * nxtPoint.Y;
-                B += currPoint.Y * nxtPoint.X;
+                A += EndPoint.X * StartPoint.Y;
+                B += EndPoint.Y * StartPoint.X;
             }
 
             Area = Math.Abs((A - B) / 2.0);
@@ -321,7 +307,7 @@ namespace MSolvLib.MarkGeometry
         {
             Perimeter = 0;
 
-            if (Lines.Count > 0)
+            if (Points.Count > 0)
             {
                 Extents.MinX = Double.MaxValue;
                 Extents.MaxX = Double.MinValue;
@@ -332,18 +318,21 @@ namespace MSolvLib.MarkGeometry
                 Extents.MinZ = Double.MaxValue;
                 Extents.MaxZ = Double.MinValue;
 
-                foreach (MarkGeometryLine line in Lines)
+                for (int i = 0; i < Points.Count; i++)
                 {
-                    Extents.MinX = GeometricArithmeticModule.Min(Extents.MinX, line.Extents.MinX);
-                    Extents.MaxX = GeometricArithmeticModule.Max(Extents.MaxX, line.Extents.MaxX);
+                    Extents.MinX = GeometricArithmeticModule.Min(Extents.MinX, Points[i].X);
+                    Extents.MaxX = GeometricArithmeticModule.Max(Extents.MaxX, Points[i].X);
 
-                    Extents.MinY = GeometricArithmeticModule.Min(Extents.MinY, line.Extents.MinY);
-                    Extents.MaxY = GeometricArithmeticModule.Max(Extents.MaxY, line.Extents.MaxY);
+                    Extents.MinY = GeometricArithmeticModule.Min(Extents.MinY, Points[i].Y);
+                    Extents.MaxY = GeometricArithmeticModule.Max(Extents.MaxY, Points[i].Y);
 
-                    Extents.MinZ = GeometricArithmeticModule.Min(Extents.MinZ, line.Extents.MinZ);
-                    Extents.MaxZ = GeometricArithmeticModule.Max(Extents.MaxZ, line.Extents.MaxZ);
+                    Extents.MinZ = GeometricArithmeticModule.Min(Extents.MinZ, Points[i].Z);
+                    Extents.MaxZ = GeometricArithmeticModule.Max(Extents.MaxZ, Points[i].Z);
 
-                    Perimeter += line.Length;
+                    if (i < Points.Count-1)
+                    {
+                        Perimeter += GeometricArithmeticModule.ABSMeasure(Points[i], Points[i + 1]);
+                    }
                 }
             }
             else
@@ -359,32 +348,29 @@ namespace MSolvLib.MarkGeometry
             }
         }
 
-        public void FromPoints(params MarkGeometryPoint[] points)
+        public override void Transform(Matrix4x4 transformationMatrixIn)
         {
-            Lines = new List<MarkGeometryLine>();
+            //Parallel.ForEach(Points, (point) =>
+            //{
+            //    point.Transform(transformationMatrixIn);
+            //});
 
-            Lines.AddRange(GeometricArithmeticModule.ToLines(points));
+            foreach (var point in Points)
+                point.Transform(transformationMatrixIn);
 
-            // TODO : Calculate centroid
-            CentrePoint = new MarkGeometryPoint();
-            Update();
-        }
+            SetExtents();
 
-        public override void Transform(Matrix<double> transformationMatrixIn)
-        {
-            foreach (var line in Lines)
-            {
-                line.Transform(transformationMatrixIn);
-            }
+            //CentrePoint.Transform(transformationMatrixIn);
 
-            CentrePoint.Transform(transformationMatrixIn);
-
-            Update();
+            //Update();
         }
 
         public override void Draw2D(IMarkGeometryVisualizer2D view, bool shouldShowVertex)
         {
-            view.Draw2D(Lines, shouldShowVertex);
+            view.Draw2D(
+                GeometricArithmeticModule.ToLines(Points), 
+                shouldShowVertex
+            );
         }
 
         public override void ReadXml(XmlReader reader)
@@ -397,15 +383,15 @@ namespace MSolvLib.MarkGeometry
             CentrePoint = new MarkGeometryPoint();
             CentrePoint.ReadXml(reader);
 
-            Lines = new List<MarkGeometryLine>();
+            Points = new List<MarkGeometryPoint>();
 
-            if (reader.MoveToContent() == XmlNodeType.Element && reader.LocalName == nameof(Lines))
+            if (reader.MoveToContent() == XmlNodeType.Element && reader.LocalName == nameof(Points))
             {
                 while(reader.MoveToContent() == XmlNodeType.Element)
                 {
-                    var line = new MarkGeometryLine();
-                    line.ReadXml(reader);
-                    Lines.Add(line);
+                    var point = new MarkGeometryPoint();
+                    point.ReadXml(reader);
+                    Points.Add(point);
                 }
             }
 
@@ -420,10 +406,10 @@ namespace MSolvLib.MarkGeometry
             writer.WriteAttributeString(nameof(IsClosed), IsClosed.ToString());
             CentrePoint.WriteXml(writer);
 
-            writer.WriteStartElement(nameof(Lines));
-            foreach(var line in Lines)
+            writer.WriteStartElement(nameof(Points));
+            foreach(var point in Points)
             {
-                line.WriteXml(writer);
+                point.WriteXml(writer);
             }
             writer.WriteEndElement();
             writer.WriteEndElement();
@@ -433,14 +419,9 @@ namespace MSolvLib.MarkGeometry
         {
             List<netDxf.Vector2> entityPoints = new List<netDxf.Vector2>();
 
-            if (Lines.Count > 0)
+            for(int i=0; i<Points.Count; i++)
             {
-                entityPoints.Add((netDxf.Vector2)Lines[0].StartPoint);
-
-                foreach (var line in Lines)
-                {
-                    entityPoints.Add((netDxf.Vector2)line.EndPoint);
-                }
+                entityPoints.Add((netDxf.Vector2)Points[i]);
             }
 
             return new LwPolyline(entityPoints);
@@ -450,14 +431,9 @@ namespace MSolvLib.MarkGeometry
         {
             List<netDxf.Vector2> entityPoints = new List<netDxf.Vector2>();
 
-            if (Lines.Count > 0)
+            for (int i = 0; i < Points.Count; i++)
             {
-                entityPoints.Add((netDxf.Vector2)Lines[0].StartPoint);
-
-                foreach (var line in Lines)
-                {
-                    entityPoints.Add((netDxf.Vector2)line.EndPoint);
-                }
+                entityPoints.Add((netDxf.Vector2)Points[i]);
             }
 
             return new LwPolyline(entityPoints)

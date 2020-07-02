@@ -1,8 +1,8 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using MSolvLib.Classes.MarkGeometries.Classes.Helpers;
+﻿using MSolvLib.Classes.MarkGeometries.Classes.Helpers;
 using netDxf.Entities;
 using System;
 using System.Drawing;
+using System.Numerics;
 using System.Xml;
 using System.Xml.Schema;
 using System.Xml.Serialization;
@@ -75,7 +75,7 @@ namespace MSolvLib.MarkGeometry
             Perimeter = input.Perimeter + 0;
         }
 
-        public abstract void Transform(Matrix<double> transformationMatrixIn);
+        public abstract void Transform(Matrix4x4 transformationMatrixIn);
         public abstract void SetExtents();
         public abstract void Update();
         public abstract void Draw2D(IMarkGeometryVisualizer2D view, bool shouldShowVertex);

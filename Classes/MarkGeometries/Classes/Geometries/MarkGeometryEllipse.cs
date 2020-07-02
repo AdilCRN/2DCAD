@@ -1,8 +1,7 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using netDxf;
+﻿using netDxf;
 using netDxf.Entities;
 using System;
-using System.Collections.Generic;
+using System.Numerics;
 
 namespace MSolvLib.MarkGeometry
 {
@@ -14,9 +13,6 @@ namespace MSolvLib.MarkGeometry
         public double EndAngle { get; set; } = 0;
         public double MinorAxis { get; set; } = 0;
         public double MajorAxis { get; set; } = 0;
-
-        public MarkGeometryPoint StartPoint { get; set; }
-        public MarkGeometryPoint EndPoint { get; set; }
 
         public MarkGeometryEllipse(Ellipse ellipse)
             : base()
@@ -32,31 +28,21 @@ namespace MSolvLib.MarkGeometry
 
         public void GenerateView()
         {
-            Lines = new List<MarkGeometryLine>();
-
             for (int i = 0; i < VertexCount; i++)
             {
-                var line = new MarkGeometryLine(
+                Points.Add(
                     GeometricArithmeticModule.GetPointAtAngle(
                         CentrePoint,
                         MajorAxis,
                         MinorAxis,
-                        GeometricArithmeticModule.Map(i, 0, VertexCount, StartAngle, EndAngle)
-                    ),
-                    GeometricArithmeticModule.GetPointAtAngle(
-                        CentrePoint,
-                        MajorAxis,
-                        MinorAxis,
-                        GeometricArithmeticModule.Map(i + 1, 0, VertexCount, StartAngle, EndAngle)
+                        GeometricArithmeticModule.Map(i, 0, VertexCount-1, StartAngle, EndAngle)
                     )
                 );
-
-                Lines.Add(line);
             }
 
-            StartPoint = GeometricArithmeticModule.GetPointAtAngle(CentrePoint, MajorAxis, MinorAxis, StartAngle);
-            EndPoint = GeometricArithmeticModule.GetPointAtAngle(CentrePoint, MajorAxis, MinorAxis, EndAngle);
-            IsClosed = Math.Abs(StartAngle - EndAngle) >= 360 || (StartPoint == EndPoint);
+            //StartPoint = GeometricArithmeticModule.GetPointAtAngle(CentrePoint, MajorAxis, MinorAxis, StartAngle);
+            //EndPoint = GeometricArithmeticModule.GetPointAtAngle(CentrePoint, MajorAxis, MinorAxis, EndAngle);
+            IsClosed = Math.Abs(StartAngle - EndAngle) >= (2.0 * Math.PI) || (StartPoint == EndPoint);
 
             Update();
         }
@@ -67,7 +53,7 @@ namespace MSolvLib.MarkGeometry
             base.Update();
         }
 
-        public override void Transform(Matrix<double> transformationMatrixIn)
+        public override void Transform(Matrix4x4 transformationMatrixIn)
         {
             // transform centre point
             CentrePoint.Transform(transformationMatrixIn);
@@ -86,14 +72,14 @@ namespace MSolvLib.MarkGeometry
         public override EntityObject GetAsDXFEntity()
         {
             return new Ellipse(
-                    (Vector3) CentrePoint, MajorAxis, MinorAxis
+                    (netDxf.Vector3) CentrePoint, MajorAxis, MinorAxis
                 );
         }
 
         public override EntityObject GetAsDXFEntity(string layer)
         {
             return new Ellipse(
-                    (Vector3) CentrePoint, MajorAxis, MinorAxis
+                    (netDxf.Vector3) CentrePoint, MajorAxis, MinorAxis
                 )
             { Layer = new netDxf.Tables.Layer(layer) };
         }

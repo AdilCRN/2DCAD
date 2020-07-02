@@ -1,11 +1,8 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using MSolvLib.MarkGeometry;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Text;
-using System.Threading.Tasks;
+using System.Numerics;
 
 namespace MSolvLib.MarkGeometry.Helpers
 {
@@ -43,7 +40,7 @@ namespace MSolvLib.MarkGeometry.Helpers
             }
         }
 
-        public void Draw(Bitmap bmp, IMarkGeometry geometry, Matrix<double> transform, bool showVertices = false)
+        public void Draw(Bitmap bmp, IMarkGeometry geometry, Matrix4x4 transform, bool showVertices = false)
         {
             using (var graphics = Graphics.FromImage(bmp))
             {
@@ -54,52 +51,42 @@ namespace MSolvLib.MarkGeometry.Helpers
             }
         }
 
-        public void Draw(Bitmap bmp, IEnumerable<IMarkGeometry> geometries, bool showVertices = false)
+        public void Draw(Bitmap bmp, IList<IMarkGeometry> geometries, bool showVertices = false, int startOffset = 0)
         {
-            using (var graphics = Graphics.FromImage(bmp))
+            int index = startOffset;
+            try
             {
-                foreach(var geometry in geometries)
+                using (var graphics = Graphics.FromImage(bmp))
                 {
-                    Draw(graphics, geometry, showVertices);
-                }
-            }
-        }
-
-        public void Draw(Bitmap bmp, IEnumerable<IMarkGeometry> geometries, Matrix<double> transform, bool showVertices = false)
-        {
-            using (var graphics = Graphics.FromImage(bmp))
-            {
-                foreach (var geometry in geometries)
-                {
-                    var _geometry = (IMarkGeometry)geometry.Clone();
-                    _geometry.Transform(transform);
-
-                    Draw(graphics, _geometry, showVertices);
-                }
-            }
-        }
-
-        public void DrawLarge(Bitmap bmp, IList<IMarkGeometry> geometries, Matrix<double> transform, bool showVertices = false)
-        {
-            int index = 0;
-            while (index < geometries.Count)
-            {
-                try
-                {
-                    using (var graphics = Graphics.FromImage(bmp))
+                    while (index < geometries.Count)
                     {
-                        for (int i = index; i < geometries.Count; i++)
-                        {
-                            var _geometry = (IMarkGeometry)geometries[index++].Clone();
-                            _geometry.Transform(transform);
-
-                            Draw(graphics, _geometry, showVertices);
-                        }
+                        Draw(graphics, geometries[index++], showVertices);
                     }
                 }
-                catch (OutOfMemoryException) {
-                    index -= 1;
+            }
+            catch (OutOfMemoryException)
+            {
+                Draw(bmp, geometries, showVertices, index-1);
+            }
+        }
+
+        public void Draw(Bitmap bmp, IList<IMarkGeometry> geometries, Matrix4x4 transform, bool showVertices = false, int startOffset = 0)
+        {
+            int index = startOffset;
+            try
+            {
+                using (var graphics = Graphics.FromImage(bmp))
+                {
+                    while (index < geometries.Count)
+                    {
+                        geometries[index].Transform(transform);
+                        Draw(graphics, geometries[index++], showVertices);
+                    }
                 }
+            }
+            catch (OutOfMemoryException)
+            {
+                Draw(bmp, geometries, transform, showVertices, index-1);
             }
         }
 
@@ -301,11 +288,8 @@ namespace MSolvLib.MarkGeometry.Helpers
 
                 if (showVertices)
                 {
-                    foreach(var ln in path.Lines)
-                    {
-                        Draw(graphics, ln.StartPoint, false);
-                        Draw(graphics, ln.EndPoint, false);
-                    }
+                    for (int i = 0; i < path.Points.Count; i++)
+                        Draw(graphics, path.Points[i], false);
                 }
             }
             else if (geometry is MarkGeometriesWrapper wrapper)

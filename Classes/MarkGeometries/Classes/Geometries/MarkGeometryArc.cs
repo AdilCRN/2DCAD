@@ -1,7 +1,7 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using netDxf.Entities;
+﻿using netDxf.Entities;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace MSolvLib.MarkGeometry
 {
@@ -159,7 +159,7 @@ namespace MSolvLib.MarkGeometry
             Extents = GeometricArithmeticModule.CalculateExtents((MarkGeometryPoint[]) this);
         }
 
-        public override void Transform(Matrix<double> transformationMatrixIn)
+        public override void Transform(Matrix4x4 transformationMatrixIn)
         {
             CentrePoint.Transform(transformationMatrixIn);
             StartPoint.Transform(transformationMatrixIn);
@@ -172,6 +172,11 @@ namespace MSolvLib.MarkGeometry
         public override void Update()
         {
             SetExtents();
+        }
+
+        public override string ToString()
+        {
+            return $"{{'CentrePoint': {CentrePoint}, 'Radius': {Radius}, 'StartAngle': {StartAngle / Math.PI * 180}, 'EndAngle': {EndAngle / Math.PI * 180}}}";
         }
 
         public MarkGeometryPoint GetMidpoint()

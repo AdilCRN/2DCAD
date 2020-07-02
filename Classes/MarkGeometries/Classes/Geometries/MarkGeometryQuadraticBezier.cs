@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using MathNet.Numerics.LinearAlgebra;
+﻿using System.Numerics;
 
 namespace MSolvLib.MarkGeometry
 {
@@ -43,19 +42,12 @@ namespace MSolvLib.MarkGeometry
 
         public void GenerateView()
         {
-            Lines = new List<MarkGeometryLine>();
-
-            GeometricArithmeticModule.LookAheadStepPositionIterationHelper(VertexCount,
-                (current, next) =>
-                {
-                    Lines.Add(new MarkGeometryLine(
-                        GeometricArithmeticModule.GetPointAtPosition(StartPoint, EndPoint, ControlPoint, current),
-                        GeometricArithmeticModule.GetPointAtPosition(StartPoint, EndPoint, ControlPoint, next)
-                    ));
-
-                    return true;
-                }
-            );
+            for (int i = 0; i < VertexCount; i++)
+            {
+                Points.Add(GeometricArithmeticModule.GetPointAtPosition(
+                    StartPoint, EndPoint, ControlPoint, i / (double)(VertexCount - 1))
+                );
+            }
         }
 
         public override void Update()
@@ -64,7 +56,7 @@ namespace MSolvLib.MarkGeometry
             base.Update();
         }
 
-        public override void Transform(Matrix<double> transformationMatrixIn)
+        public override void Transform(Matrix4x4 transformationMatrixIn)
         {
             StartPoint.Transform(transformationMatrixIn);
             ControlPoint.Transform(transformationMatrixIn);

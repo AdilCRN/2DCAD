@@ -1,6 +1,6 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace MSolvLib.MarkGeometry
 {
@@ -153,13 +153,18 @@ namespace MSolvLib.MarkGeometry
             EndPoint = GeometricArithmeticModule.GetPointAtAngle(CentrePoint, Radius, 2*Math.PI);
         }
 
-        public override void Transform(Matrix<double> transformationMatrixIn)
+        public override void Transform(Matrix4x4 transformationMatrixIn)
         {
             CentrePoint.Transform(transformationMatrixIn);
             StartPoint.Transform(transformationMatrixIn);
 
             Radius = GeometricArithmeticModule.ABSMeasure(StartPoint, CentrePoint);
             Update();
+        }
+
+        public override string ToString()
+        {
+            return $"{{'CentrePoint': {CentrePoint}, 'Radius': {Radius}}}";
         }
 
         public override netDxf.Entities.EntityObject GetAsDXFEntity()

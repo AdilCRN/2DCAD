@@ -1,6 +1,6 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using netDxf.Entities;
+﻿using netDxf.Entities;
 using System;
+using System.Numerics;
 using System.Xml;
 using System.Xml.Serialization;
 
@@ -126,12 +126,22 @@ namespace MSolvLib.MarkGeometry
             Update();
         }
 
-        public MarkGeometryPoint(Matrix<double> matrix)
+        public MarkGeometryPoint(Vector2 vector)
             : base()
         {
-            X = matrix[0, 0];
-            Y = matrix[1, 0];
-            Z = matrix[2, 0];
+            X = vector.X;
+            Y = vector.Y;
+            Z = 0;
+
+            Update();
+        }
+
+        public MarkGeometryPoint(Vector3 vector)
+            : base()
+        {
+            X = vector.X;
+            Y = vector.Y;
+            Z = vector.Z;
 
             Update();
         }
@@ -166,23 +176,19 @@ namespace MSolvLib.MarkGeometry
             return new System.Drawing.Point((int)point.X, (int)point.Y);
         }
 
-        public static explicit operator Matrix<double>(MarkGeometryPoint point)
+        public static explicit operator Vector2(MarkGeometryPoint point)
         {
-            var matrix = Matrix<double>.Build.Dense(1, 4);
-            matrix[0, 0] = point.X;
-            matrix[0, 1] = point.Y;
-            matrix[0, 2] = point.Z;
-            matrix[0, 3] = 1;
-            return matrix;
+            return new Vector2((float)point.X, (float)point.Y);
         }
 
-        public static explicit operator Vector<double>(MarkGeometryPoint point)
+        public static explicit operator Vector3(MarkGeometryPoint point)
         {
-            var vector = Vector<double>.Build.Dense(3);
-            vector[0] = point.X;
-            vector[1] = point.Y;
-            vector[2] = point.Z;
-            return vector;
+            return new Vector3((float)point.X, (float)point.Y, (float)point.Z);
+        }
+
+        public static explicit operator Vector4(MarkGeometryPoint point)
+        {
+            return new Vector4((float)point.X, (float)point.Y, (float)point.Z, 1f);
         }
 
         public static MarkGeometryPoint operator +(MarkGeometryPoint p1, MarkGeometryPoint p2)
@@ -288,13 +294,16 @@ namespace MSolvLib.MarkGeometry
             Extents.MaxZ = Z; Extents.MinZ = Z;
         }
 
-        public override void Transform(Matrix<double> transformationMatrixIn)
+        public override void Transform(Matrix4x4 transformationMatrixIn)
         {
-            var result = (Matrix<double>)this * transformationMatrixIn;
+            var result = Vector3.Transform(
+                (Vector3)this,
+                transformationMatrixIn
+            );
 
-            X = result[0, 0];
-            Y = result[0, 1];
-            Z = result[0, 2];
+            X = result.X;
+            Y = result.Y;
+            Z = result.Z;
 
             Update();
         }
@@ -325,7 +334,7 @@ namespace MSolvLib.MarkGeometry
 
         public override string ToString()
         {
-            return $"{{X:{X}, Y:{Y}, Z:{Z}}}";
+            return $"{{'X':{X}, 'Y':{Y}, 'Z':{Z}}}";
         }
 
         public override void ReadXml(XmlReader reader)

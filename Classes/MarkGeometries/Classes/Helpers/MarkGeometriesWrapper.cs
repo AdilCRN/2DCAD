@@ -1,11 +1,11 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using netDxf;
+﻿using netDxf;
 using netDxf.Entities;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 
 namespace MSolvLib.MarkGeometry
@@ -185,7 +185,7 @@ namespace MSolvLib.MarkGeometry
 
         public void Add(MarkGeometryPath path)
         {
-            AddRange(path.Lines);
+            AddRange(GeometricArithmeticModule.ToLines(path.Points));
 
             // doesn't call Update(); because it is already called by the above method AddGeometry
             // change if this is no longer the case
@@ -291,7 +291,7 @@ namespace MSolvLib.MarkGeometry
             base.SetStroke(colorIn);
         }
 
-        public override void Transform(Matrix<double> transformationMatrixIn)
+        public override void Transform(Matrix4x4 transformationMatrixIn)
         {
             MapFunc((geometry) => 
             {
@@ -357,7 +357,7 @@ namespace MSolvLib.MarkGeometry
             layerName = "paths";
             foreach (MarkGeometryPath path in Paths)
             {
-                foreach(MarkGeometryLine line in path.Lines)
+                foreach(MarkGeometryLine line in GeometricArithmeticModule.ToLines(path.Points))
                 {
                     dxfDocument.AddEntity(line.GetAsDXFEntity(layerName));
                 }

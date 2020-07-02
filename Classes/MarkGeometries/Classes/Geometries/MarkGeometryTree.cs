@@ -1,8 +1,8 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using netDxf.Entities;
+﻿using netDxf.Entities;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
@@ -53,7 +53,7 @@ namespace MSolvLib.MarkGeometry
         {
             Geometry = (IMarkGeometry)input.Geometry.Clone();
             Children = input.Children.ConvertAll(x => (IMarkGeometry)x.Clone());
-            BackgroundColor = ColorTranslator.FromHtml(ColorTranslator.ToHtml(input.BackgroundColor));            
+            BackgroundColor = ColorTranslator.FromHtml(ColorTranslator.ToHtml(input.BackgroundColor));
 
             Update();
         }
@@ -295,7 +295,7 @@ namespace MSolvLib.MarkGeometry
             Extents = GeometricArithmeticModule.CalculateExtents(Flatten());
         }
 
-        public override void Transform(Matrix<double> transformationMatrixIn)
+        public override void Transform(Matrix4x4 transformationMatrixIn)
         {
             Geometry?.Transform(transformationMatrixIn);
 

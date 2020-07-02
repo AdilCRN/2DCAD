@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using System.Numerics;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
-using MathNet.Numerics.LinearAlgebra;
 
 namespace MSolvLib.MarkGeometry
 {
@@ -21,6 +22,11 @@ namespace MSolvLib.MarkGeometry
         public MarkGeometryPoint BottomLeftPoint { get; private set; } = new MarkGeometryPoint();
         public MarkGeometryPoint BottomRightPoint { get; private set; } = new MarkGeometryPoint();
 
+        public MarkGeometryLine TopEdge => new MarkGeometryLine(TopLeftPoint, TopRightPoint);
+        public MarkGeometryLine BottomEdge => new MarkGeometryLine(BottomLeftPoint, BottomRightPoint);
+        public MarkGeometryLine LeftEdge => new MarkGeometryLine(TopLeftPoint, BottomLeftPoint);
+        public MarkGeometryLine RightEdge => new MarkGeometryLine(TopRightPoint, BottomRightPoint);
+
         public MarkGeometryRectangle()
             : base()
         {
@@ -30,8 +36,6 @@ namespace MSolvLib.MarkGeometry
         public MarkGeometryRectangle(double width, double height)
             : base()
         {
-            Lines = new List<MarkGeometryLine>();
-            CentrePoint = new MarkGeometryPoint();
             Width = width;
             Height = height;
 
@@ -42,7 +46,6 @@ namespace MSolvLib.MarkGeometry
         public MarkGeometryRectangle(MarkGeometryPoint centrePoint, double width, double height)
             : base()
         {
-            Lines = new List<MarkGeometryLine>();
             CentrePoint = centrePoint;
             Width = width;
             Height = height;
@@ -55,7 +58,7 @@ namespace MSolvLib.MarkGeometry
             : base()
         {
             MarkGeometryRectangle rect = new MarkGeometryLine(pointA, pointB).Extents.Boundary;
-            Lines = rect.Lines;
+            Points.AddRange(rect.Points);
             CentrePoint = rect.CentrePoint;
             Width = rect.Width;
             Height = rect.Height;
@@ -79,7 +82,6 @@ namespace MSolvLib.MarkGeometry
         protected MarkGeometryRectangle(MarkGeometryRectangle input)
             : base(input)
         {
-            Lines = new List<MarkGeometryLine>();
             Width = input.Width;
             Height = input.Height;
             CentrePoint = (MarkGeometryPoint)input.CentrePoint.Clone();
@@ -109,8 +111,15 @@ namespace MSolvLib.MarkGeometry
             BottomRightPoint = new MarkGeometryPoint(CentrePoint.X + halfWidth, CentrePoint.Y - halfHeight);
 
             IsClosed = true;
-            Lines = new List<MarkGeometryLine>();
-            Lines.AddRange(GeometricArithmeticModule.ToLines(TopLeftPoint, TopRightPoint, BottomRightPoint, BottomLeftPoint, TopLeftPoint));
+            Points = new List<MarkGeometryPoint>()
+            {
+                TopLeftPoint, TopRightPoint, BottomRightPoint, BottomLeftPoint, (MarkGeometryPoint)TopLeftPoint.Clone()
+            };
+        }
+
+        public override string ToString()
+        {
+            return $"{{'CentrePoint': {CentrePoint}, 'Width': {Width}, 'Height': {Height}}}";
         }
 
         public override object Clone()
@@ -123,20 +132,20 @@ namespace MSolvLib.MarkGeometry
             Area = Height * Width;
             Perimeter = 2 * (Height + Width);
 
-            foreach (var line in Lines)
+            for (int i = 0; i < Points.Count; i++)
             {
-                line.Update();
+                Points[i].Update();
             }
 
             base.SetExtents();
         }
 
-        public override void Transform(Matrix<double> transformationMatrixIn)
+        public override void Transform(Matrix4x4 transformationMatrixIn)
         {
-            TopLeftPoint.Transform(transformationMatrixIn);
-            TopRightPoint.Transform(transformationMatrixIn);
-            BottomLeftPoint.Transform(transformationMatrixIn);
-            BottomRightPoint.Transform(transformationMatrixIn);
+            for (int i = 0; i < Points.Count; i++)
+            {
+                Points[i].Transform(transformationMatrixIn);
+            }
 
             Width = GeometricArithmeticModule.ABSMeasure2D(TopLeftPoint, TopRightPoint);
             Height = GeometricArithmeticModule.ABSMeasure2D(TopLeftPoint, BottomLeftPoint);
@@ -154,7 +163,7 @@ namespace MSolvLib.MarkGeometry
             reader.Read();
 
             Height = double.Parse(reader.ReadElementString(nameof(Height)));
-            Lines = new List<MarkGeometryLine>();
+            Points = new List<MarkGeometryPoint>();
 
             CentrePoint = new MarkGeometryPoint();
             CentrePoint.ReadXml(reader);

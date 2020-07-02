@@ -49,5 +49,31 @@ namespace MSolvLib.Classes.MarkGeometries.Classes.Helpers
         {
             return $"{{MinX: {MinX}, MinY: {MinY}, MinZ: {MinZ}, MaxX: {MaxX}, MaxY: {MaxY}, MaxZ: {MaxZ}, Width: {Width}, Height: {Height}, Depth: {Depth}, Centre: {Centre}}}";
         }
+
+        public static GeometryExtents<double> Combine(GeometryExtents<double> extentsA, GeometryExtents<double> extentsB)
+        {
+            return new GeometryExtents<double>()
+            {
+                MinX = Math.Min(extentsA.MinX, extentsB.MinX),
+                MinY = Math.Min(extentsA.MinY, extentsB.MinY),
+                MinZ = Math.Min(extentsA.MinZ, extentsB.MinZ),
+                MaxX = Math.Max(extentsA.MaxX, extentsB.MaxX),
+                MaxY = Math.Max(extentsA.MaxY, extentsB.MaxY),
+                MaxZ = Math.Max(extentsA.MaxZ, extentsB.MaxZ),
+            };
+        }
+
+        public static GeometryExtents<double> CreateDefaultDouble()
+        {
+            return new GeometryExtents<double>()
+            {
+                MinX = double.MaxValue,
+                MinY = double.MaxValue,
+                MinZ = double.MaxValue,
+                MaxX = double.MinValue,
+                MaxY = double.MinValue,
+                MaxZ = double.MinValue,
+            };
+        }
     }
 }

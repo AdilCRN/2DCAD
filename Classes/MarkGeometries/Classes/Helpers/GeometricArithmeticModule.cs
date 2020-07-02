@@ -1,48 +1,19 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using MSolvLib.Classes;
+﻿using MSolvLib.Classes;
 using MSolvLib.Classes.MarkGeometries.Classes.Helpers;
-using netDxf;
 using netDxf.Header;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Numerics;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
+using System.Windows.Media;
 
 namespace MSolvLib.MarkGeometry
 {
-    /// <summary>
-    ///     This describes the euler orientation of the a geometric object
-    ///     Given a flat grid, X+ travels towards you, Y travels perpendicular
-    ///     to X and sideways parallel to you (right is the positive direction),
-    ///     and Z+ travel up and out of the flat grid.
-    /// </summary>
-    public struct GeometricEulerOrientation
-    {
-        public double Roll;
-        public double Pitch;
-        public double Yaw;
-
-        public GeometricEulerOrientation(double roll, double pitch, double yaw)
-        {
-            Roll = roll;
-            Pitch = pitch;
-            Yaw = yaw;
-        }
-    }
-
     public static class GeometricArithmeticModule
     {
-        #region Section: Translation Strings
-        
-        private static string InvalidFileNameMsg = "Given file path is missing or invalid";
-        private static string DXFVersionNotSupported = "The version of DXF provided is not supported use, please use AutoCad2000 and higher";
-
-        #endregion
-
-        private static MatrixBuilder<double> _MB = Matrix<double>.Build;
-
         /// <summary>
         ///     This constrains a number to the  range specified
         /// </summary>
@@ -182,17 +153,14 @@ namespace MSolvLib.MarkGeometry
             {
                 double length = 0;
 
-                foreach (MarkGeometryLine ln in path.Lines)
-                {
-                    length += CalculatePerimeter(ln);
-                }
+                for (int i = 0; i < path.Points.Count - 1; i++)
+                    length += ABSMeasure(path.Points[i], path.Points[i+1]);
 
                 return length;
             }
 
             throw new NotSupportedException($"Geometry of type '{geometry.GetType().Name}' is not supported with this function");
         }
-
 
         /// <summary>
         ///     1. Calculates the radius distance of a point relative to the origin 0,0,0
@@ -336,9 +304,14 @@ namespace MSolvLib.MarkGeometry
         ///     Generates an identity 3D transformation matrix
         /// </summary>
         /// <returns>Returns a 3D identity transformation matrix</returns>
-        public static Matrix<double> GetDefaultTransformationMatrix()
+        public static Matrix4x4 GetDefaultTransformationMatrix()
         {
-            return _MB.DenseIdentity(4);
+            return new Matrix4x4(
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            );
         }
 
         ///// <summary>
@@ -366,20 +339,11 @@ namespace MSolvLib.MarkGeometry
         /// <param name="ty">The magnitude of transformation in the Y</param>
         /// <param name="tz">The magnitude of transformation in the Z</param>
         /// <returns>Returns the translation transformation matrix for the given parameters.</returns>
-        public static Matrix<double> GetTranslationTransformationMatrix(double tx, double ty, double tz=0)
+        public static Matrix4x4 GetTranslationTransformationMatrix(double tx, double ty, double tz=0)
         {
-            //return new Matrix3D(
-            //    1, 0, 0, 0,
-            //    0, 1, 0, 0,
-            //    0, 0, 1, 0,
-            //    tx, ty, tz, 1
-            //);
-
-            Matrix<double> m = _MB.DenseIdentity(4);
-            m[3, 0] = tx;
-            m[3, 1] = ty;
-            m[3, 2] = tz;
-            return m;
+            return Matrix4x4.CreateTranslation(
+                (float)tx, (float)ty, (float)tz
+            );
         }
 
         /// <summary>
@@ -389,20 +353,14 @@ namespace MSolvLib.MarkGeometry
         /// <param name="sy">The magnitude of transformation in the Y</param>
         /// <param name="sz">The magnitude of transformation in the Z</param>
         /// <returns>Returns the scaling transformation matrix for the given parameters.</returns>
-        public static Matrix<double> GetScalingTransformationMatrix(double sx, double sy, double sz = 1)
+        public static Matrix4x4 GetScalingTransformationMatrix(double sx, double sy, double sz = 1)
         {
-            //return new Matrix3D(
-            //    sx, 0, 0, 0,
-            //    0, sy, 0, 0,
-            //    0, 0, sz, 0,
-            //    0, 0, 0, 1
-            //);
-
-            Matrix<double> m = _MB.DenseIdentity(4);
-            m[0, 0] = sx;
-            m[1, 1] = sy;
-            m[2, 2] = sz;
-            return m;
+            return new Matrix4x4(
+                (float)sx, 0, 0, 0,
+                0, (float)sy, 0, 0,
+                0, 0, (float)sz, 0,
+                0, 0, 0, 1
+            );
         }
 
         /// <summary>
@@ -415,7 +373,7 @@ namespace MSolvLib.MarkGeometry
         /// <param name="sh_zx">The magnitude of transformation on the ZX plane</param>
         /// <param name="sh_zy">The magnitude of transformation on the ZY plane</param>
         /// <returns>Returns the shearing transformation matrix for the given parameters.</returns>
-        public static Matrix<double> GetShearingTransformationMatrix(
+        public static Matrix4x4 GetShearingTransformationMatrix(
             double sh_xy,
             double sh_xz,
             double sh_yx,
@@ -424,21 +382,12 @@ namespace MSolvLib.MarkGeometry
             double sh_zy
         )
         {
-            //return new Matrix3D(
-            //    1, sh_yx, sh_zx, 0,
-            //    sh_xy, 1, sh_zy, 0,
-            //    sh_xz, sh_yz, 1, 0,
-            //    0, 0, 0, 1
-            //);
-
-            Matrix<double> m = _MB.DenseIdentity(4);
-            m[0, 1] = sh_yx;
-            m[0, 2] = sh_zx;
-            m[1, 0] = sh_xy;
-            m[1, 2] = sh_zy;
-            m[2, 0] = sh_xz;
-            m[2, 1] = sh_yz;
-            return m;
+            return new Matrix4x4(
+                1, (float)sh_yx, (float)sh_zx, 0,
+                (float)sh_xy, 1, (float)sh_zy, 0,
+                (float)sh_xz, (float)sh_yz, 1, 0,
+                0, 0, 0, 1
+            );
         }
 
         /// <summary>
@@ -448,52 +397,90 @@ namespace MSolvLib.MarkGeometry
         /// <param name="ryRad">The magnitude of transformation on the Y axis</param>
         /// <param name="rzRad">The magnitude of transformation on the Z axis</param>
         /// <returns>Returns the rotational transformation matrix for the given parameters.</returns>
-        public static Matrix<double> GetRotationTransformationMatrix(double rxRad, double ryRad, double rzRad)
+        public static Matrix4x4 GetRotationTransformationMatrix(double rxRad, double ryRad, double rzRad)
         {
-            var sx = Math.Sin(rxRad);
-            var cx = Math.Cos(rxRad);
+            return Matrix4x4.CreateFromYawPitchRoll(
+                (float)ryRad,
+                (float)rxRad,
+                (float)rzRad
+            );
+        }
 
-            var sy = Math.Sin(ryRad);
-            var cy = Math.Cos(ryRad);
+        /// <summary>
+        ///     see: https://www.johndcook.com/blog/2018/05/05/svd/
+        ///     see: https://youtu.be/PjeOmOz9jSY
+        ///     see: https://lucidar.me/en/mathematics/calculating-the-transformation-between-two-set-of-points/
+        /// </summary>
+        /// <param name="inputPoints"></param>
+        /// <param name="outputPoints"></param>
+        /// <returns></returns>
+        public static Matrix4x4 EstimateTransformationMatrixFromPoints(IList<MarkGeometryPoint> inputPoints, IList<MarkGeometryPoint> outputPoints)
+        {
 
-            var sz = Math.Sin(rzRad);
-            var cz = Math.Cos(rzRad);
+            if (inputPoints == null || inputPoints.Count <= 0)
+                return GetDefaultTransformationMatrix();
 
-            //var rx = new Matrix3D(
-            //    1, 0, 0, 0,
-            //    0, cx, -sx, 0,
-            //    0, sx, cx, 0,
-            //    0, 0, 0, 1
-            //);
+            if (outputPoints == null || outputPoints.Count <= 0)
+                return GetDefaultTransformationMatrix();
 
-            //var ry = new Matrix3D(
-            //    cy, 0, sy, 0,
-            //    0, 1, 0, 0,
-            //    -sy, 0, cy, 0,
-            //    0, 0, 0, 1
-            //);
+            var inputMatrix = Matrix<double>.Build.Dense(4, inputPoints.Count);
+            for (int i = 0; i < inputPoints.Count; i++)
+            {
+                inputMatrix[0, i] = inputPoints[i].X;
+                inputMatrix[1, i] = inputPoints[i].Y;
+                inputMatrix[2, i] = inputPoints[i].Z;
+                inputMatrix[3, i] = 1d;
+            }
 
-            //var rz = new Matrix3D(
-            //    cz, -sz, 0, 0,
-            //    sz, cz, 0, 0,
-            //    0, 0, 1, 0,
-            //    0, 0, 0, 1
-            //);
+            var outputMatrix = Matrix<double>.Build.Dense(4, outputPoints.Count);
+            for (int i = 0; i < inputPoints.Count; i++)
+            {
+                outputMatrix[0, i] = outputPoints[i].X;
+                outputMatrix[1, i] = outputPoints[i].Y;
+                outputMatrix[2, i] = outputPoints[i].Z;
+                outputMatrix[3, i] = 1d;
+            }
 
-            Matrix<double> rx = _MB.DenseIdentity(4);
-            Matrix<double> ry = _MB.DenseIdentity(4);
-            Matrix<double> rz = _MB.DenseIdentity(4);
+            // return the estimated transform
+            return ToMatrix4x4(outputMatrix * inputMatrix.PseudoInverse());
+        }
 
-            rx[1, 1] = cx; rx[1, 2] = -sx;
-            rx[2, 1] = sx; rx[2, 2] = cx;
+        /// <summary>
+        ///     Convert a 4x4 Matrix<double> to Matrix4x4.
+        /// </summary>
+        /// <param name="_matrix">A 4x4 Matrix<double></param>
+        /// <returns>A Matrix4x4 representation of the input Matrix<double></returns>
+        public static Matrix4x4 ToMatrix4x4(Matrix<double> matrixIn)
+        {
+            var _matrix = matrixIn.Transpose();
+            // copy matrix
+            var result = Matrix4x4.Identity;
 
-            ry[0, 0] = cy; ry[0, 2] = sy;
-            ry[2, 0] = -sy; ry[2, 2] = cy;
+            // row 1
+            result.M11 = (float)_matrix[0, 0];
+            result.M12 = (float)_matrix[0, 1];
+            result.M13 = (float)_matrix[0, 2];
+            result.M14 = (float)_matrix[0, 3];
 
-            rz[0, 0] = cz; rz[0, 1] = -sz;
-            rz[1, 0] = sz; rz[1, 1] = cz;
+            // row 2
+            result.M21 = (float)_matrix[1, 0];
+            result.M22 = (float)_matrix[1, 1];
+            result.M23 = (float)_matrix[1, 2];
+            result.M24 = (float)_matrix[1, 3];
 
-            return CombineTransformations(rx, ry, rz);
+            // row 3
+            result.M31 = (float)_matrix[2, 0];
+            result.M32 = (float)_matrix[2, 1];
+            result.M33 = (float)_matrix[2, 2];
+            result.M34 = (float)_matrix[2, 3];
+
+            // row 4
+            result.M41 = (float)_matrix[3, 0];
+            result.M42 = (float)_matrix[3, 1];
+            result.M43 = (float)_matrix[3, 2];
+            result.M44 = (float)_matrix[3, 3];
+
+            return result;
         }
 
         /// <summary>
@@ -501,31 +488,22 @@ namespace MSolvLib.MarkGeometry
         /// </summary>
         /// <param name="transformations">The ordered list of transformation matrixes.</param>
         /// <returns>Returns a 3D transformation matrix deveried from the given parameters</returns>
-        public static Matrix<double> CombineTransformations(params Matrix<double>[] transformations)
+        public static Matrix4x4 CombineTransformations(params Matrix4x4[] transformations)
         {
             // TODO : Review combining matrices
             // https://www.mauriciopoppe.com/notes/computer-graphics/transformation-matrices/combining-transformations/
 
-            if (transformations.Length >= 2)
-            {
-                Matrix<double> result = transformations[0];
+            if (
+                transformations == null || transformations.Length < 0
+            )
+                return Matrix4x4.Identity;
 
-                for (int i = 1; i < transformations.Length; i++)
-                {
-                    result = result * transformations[i];
-                }
+            var result = transformations[0];
 
-                return result;
-            }
+            for(int i=1; i<transformations.Length; i++)
+                result = Matrix4x4.Multiply(result, transformations[i]);
 
-            try
-            {
-                return transformations[0];
-            }
-            catch (Exception)
-            {
-                return GetDefaultTransformationMatrix();
-            }
+            return result;
         }
 
         /// <summary>
@@ -664,6 +642,47 @@ namespace MSolvLib.MarkGeometry
         }
 
         /// <summary>
+        ///     Transforms the given geometries such that its combined top left position is aligned with the origin.
+        /// </summary>
+        /// <param name="geometries">The input geometries to align</param>
+        /// <returns>The transformed geometries.</returns>
+        public static IList<IMarkGeometry> AlignTopLeftToOrigin(IList<IMarkGeometry> geometries)
+        {
+            var extent = CalculateExtents(geometries);
+
+            foreach (var geometry in geometries)
+            {
+                Translate(geometry, -extent.MinX, -extent.MinY, -extent.MinZ);
+            }
+
+            return geometries;
+        }
+
+        /// <summary>
+        ///     Transforms the given geometries such that its combined centre position is aligned with the origin.
+        /// </summary>
+        /// <param name="geometries">The input geometries to align</param>
+        /// <param name="reference">The reference extents</param>
+        /// <returns>The transformed geometries.</returns>
+        public static IList<IMarkGeometry> AlignCentreToExtents(IList<IMarkGeometry> geometries, GeometryExtents<double> reference)
+        {
+            // calculate the extents for the input geometries
+            var extent = CalculateExtents(geometries);
+
+            // calcuate the difference between both centres
+            var transform = GetTranslationTransformationMatrix(
+                reference.Centre.X - extent.Centre.X,
+                reference.Centre.Y - extent.Centre.Y
+            );
+
+            // in this case, for loops are faster than foreach loops
+            for (int i = 0; i < geometries.Count; i++)
+                geometries[i].Transform(transform);
+
+            return geometries;
+        }
+
+        /// <summary>
         ///     Transforms the given geometries such that its combined centre position is aligned with the origin.
         /// </summary>
         /// <param name="geometries">The input geometries to align</param>
@@ -696,7 +715,22 @@ namespace MSolvLib.MarkGeometry
         /// <returns>A double representing the calculated gradient</returns>
         public static double CalculateGradient2D(MarkGeometryLine line)
         {
-            return Math.Tan(CalculateOrientation(line).Yaw);
+            // TODO: Test implementation
+            //return Math.Tan(CalculateOrientation(line).Yaw);
+
+            // This implementation should be faster
+            return CalculateGradient2D(line.StartPoint, line.EndPoint);
+        }
+
+        /// <summary>
+        ///     Calculates the gradient of the line between two points
+        /// </summary>
+        /// <param name="p1">The start point</param>
+        /// <param name="p2">The end point</param>
+        /// <returns>A double representing the calculated gradient</returns>
+        public static double CalculateGradient2D(MarkGeometryPoint p1, MarkGeometryPoint p2)
+        {
+            return (p2.Y - p1.Y) / (p2.X - p1.X);
         }
 
         /// <summary>
@@ -727,85 +761,103 @@ namespace MSolvLib.MarkGeometry
 
         public static MarkGeometryPoint CalculateIntersection2D(MarkGeometryLine l1, MarkGeometryLine l2, double resolution = 0.001)
         {
-            double x1 = l1.StartPoint.X;
-            double x2 = l1.EndPoint.X;
-            double y1 = l1.StartPoint.Y;
-            double y2 = l1.EndPoint.Y;
+            var x1 = (float)l1.StartPoint.X;
+            var x2 = (float)l1.EndPoint.X;
+            var y1 = (float)l1.StartPoint.Y;
+            var y2 = (float)l1.EndPoint.Y;
 
-            double x3 = l2.StartPoint.X;
-            double x4 = l2.EndPoint.X;
-            double y3 = l2.StartPoint.Y;
-            double y4 = l2.EndPoint.Y;
+            var x3 = (float)l2.StartPoint.X;
+            var x4 = (float)l2.EndPoint.X;
+            var y3 = (float)l2.StartPoint.Y;
+            var y4 = (float)l2.EndPoint.Y;
 
-            Matrix<double> a = _MB.DenseIdentity(2);
-            a[0, 0] = x1; a[0, 1] = y1;
-            a[1, 0] = x2; a[1, 1] = y2;
+            var a = new Matrix4x4(
+                x1, y1, 0, 0,
+                x2, y2, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            );
 
-            Matrix<double> b = _MB.DenseIdentity(2);
-            b[0, 0] = x1; b[0, 1] = 1d;
-            b[1, 0] = x2; b[1, 1] = 1d;
+            var b = new Matrix4x4(
+                x1, 1, 0, 0,
+                x2, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            );
 
-            Matrix<double> c = _MB.DenseIdentity(2);
-            c[0, 0] = x3; c[0, 1] = y3;
-            c[1, 0] = x4; c[1, 1] = y4;
+            var c = new Matrix4x4(
+                x3, y3, 0, 0,
+                x4, y4, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            );
 
-            Matrix<double> d = _MB.DenseIdentity(2);
-            d[0, 0] = x3; d[0, 1] = 1d;
-            d[1, 0] = x4; d[1, 1] = 1d;
+            var d = new Matrix4x4(
+                x3, 1, 0, 0,
+                x4, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            );
 
-            Matrix<double> e = _MB.DenseIdentity(2);
-            e[0, 0] = y1; e[0, 1] = 1d;
-            e[1, 0] = y2; e[1, 1] = 1d;
+            var e = new Matrix4x4(
+                y1, 1, 0, 0,
+                y2, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            );
 
-            Matrix<double> f = _MB.DenseIdentity(2);
-            f[0, 0] = y3; f[0, 1] = 1d;
-            f[1, 0] = y4; f[1, 1] = 1d;
+            var f = new Matrix4x4(
+                y3, 1, 0, 0,
+                y4, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            );
 
-            Matrix<double> A = _MB.DenseIdentity(2);
-            A[0, 0] = a.Determinant(); A[0, 1] = b.Determinant();
-            A[1, 0] = c.Determinant(); A[1, 1] = d.Determinant();
+            var A = new Matrix4x4(
+                a.GetDeterminant(), b.GetDeterminant(), 0, 0,
+                c.GetDeterminant(), d.GetDeterminant(), 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            );
 
-            Matrix<double> B = _MB.DenseIdentity(2);
-            B[0, 0] = b.Determinant(); B[0, 1] = e.Determinant();
-            B[1, 0] = d.Determinant(); B[1, 1] = f.Determinant();
+            var B = new Matrix4x4(
+                b.GetDeterminant(), e.GetDeterminant(), 0, 0,
+                d.GetDeterminant(), f.GetDeterminant(), 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            );
 
-            Matrix<double> C = _MB.DenseIdentity(2);
-            C[0, 0] = a.Determinant(); C[0, 1] = e.Determinant();
-            C[1, 0] = c.Determinant(); C[1, 1] = f.Determinant();
+            var C = new Matrix4x4(
+                a.GetDeterminant(), e.GetDeterminant(), 0, 0,
+                c.GetDeterminant(), f.GetDeterminant(), 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            );
 
-            double x, y;
+            var point = new MarkGeometryPoint(
+                A.GetDeterminant() / B.GetDeterminant(),
+                C.GetDeterminant() / B.GetDeterminant()
+            );
 
-            try
-            {
-                x = A.Determinant() / B.Determinant();
-                y = C.Determinant() / B.Determinant();
-            }
-            catch (DivideByZeroException)
-            {
-                x = 0;
-                y = 0;
-            }
-
-            var point = new MarkGeometryPoint(x, y);
-
-            if (IsOnLine2D(point, l1, resolution) && IsOnLine2D(point, l2, resolution))
-            {
+            if (
+                IsOnLine2D(point, l1, resolution) && 
+                IsOnLine2D(point, l2, resolution)
+            )
                 return point;
-            }
 
             return null;
         }
 
         public static List<MarkGeometryPoint> CalculateIntersection2D(MarkGeometryPath path, MarkGeometryLine line, double resolution = 0.001)
         {
-            return CalculateIntersection2D(path.Lines, line, resolution);
+            return CalculateIntersection2D(ToLines(path.Points), line, resolution);
         }
 
         public static List<MarkGeometryPoint> CalculateIntersection2D(List<MarkGeometryLine> lines, MarkGeometryLine line, double resolution = 0.001)
         {
             var intersectionPoints = new List<MarkGeometryPoint>();
 
-            foreach(var ln in lines)
+            foreach (var ln in lines)
             {
                 var intersection = CalculateIntersection2D(ln, line, resolution);
 
@@ -822,11 +874,14 @@ namespace MSolvLib.MarkGeometry
         {
             var intersectionPoints = new List<MarkGeometryPoint>();
 
-            foreach(var l1 in p1.Lines)
+            var pln1 = ToLines(p1.Points);
+            var pln2 = ToLines(p2.Points);
+
+            for (int i = 0; i < pln1.Count; i++)
             {
-                foreach(var l2 in p2.Lines)
+                for (int j = 0; j < pln2.Count; j++)
                 {
-                    var intersection = CalculateIntersection2D(l1, l2);
+                    var intersection = CalculateIntersection2D(pln1[i], pln2[j]);
                     if (intersection != null)
                     {
                         intersectionPoints.Add(intersection);
@@ -924,46 +979,42 @@ namespace MSolvLib.MarkGeometry
             }
             else if (geometry is MarkGeometryPath path)
             {
-                if (path.Lines.Count() <= 0)
+                if (path.Points.Count <= 0)
                 {
                     throw new Exception("Path must not be empty");
                 }
 
                 // optimize for last and first points
-                if (Math.Abs(position) <= 0.0001)
-                {
-                    return path.Lines.First().StartPoint;
-                }
-                else if (Math.Abs(position) >= 0.9995)
-                {
-                    return path.Lines.Last().EndPoint;
-                }
+                if (Math.Abs(position) <= 0.00001)
+                    return path.StartPoint;
+                else if (Math.Abs(position) >= 0.99995)
+                    return path.EndPoint;
 
-                double pathLength = CalculatePerimeter(path);
+                double pathLength = path.Perimeter;
                 double lengthToPointPosition = position * pathLength;
                 double lengthSoFar = 0;
 
-                foreach (MarkGeometryLine ln in path.Lines)
+                for (int i = 0; i < path.Points.Count-1; i++)
                 {
-                    double lengthOfLine = CalculatePerimeter(ln);
+                    double lengthOfSection = ABSMeasure(path.Points[i], path.Points[i+1]);
 
                     // if point is on this line
-                    if ((lengthSoFar + lengthOfLine) >= lengthToPointPosition)
+                    if ((lengthSoFar + lengthOfSection) >= lengthToPointPosition)
                     {
-                        double localPosition = (((lengthSoFar + lengthOfLine) - lengthToPointPosition) / lengthOfLine);
-                        return GetPointAtPosition(ln, localPosition);
+                        double localPosition = (((lengthSoFar + lengthOfSection) - lengthToPointPosition) / lengthOfSection);
+                        return GetPointAtPosition(new MarkGeometryLine(path.Points[i], path.Points[i+1]), localPosition);
                     }
 
-                    lengthSoFar += CalculatePerimeter(ln);
+                    lengthSoFar += lengthOfSection;
                 }
 
                 // return last point
-                return path.Lines[path.Lines.Count() - 1].EndPoint;
+                return path.EndPoint;
             }
-            else if (geometry is MarkGeometriesWrapper wrapper)
-            {
-                return GetPointAtPosition(new MarkGeometryPath((MarkGeometryPoint[])wrapper), position);
-            }
+            //else if (geometry is IMarkGeometryWrapper wrapper)
+            //{
+            //    return GetPointAtPosition(new MarkGeometryPath((MarkGeometryPoint[])wrapper), position);
+            //}
 
             throw new NotSupportedException($"Geometry of type '{geometry.GetType().Name}' is not supported with this function");
         }
@@ -1053,6 +1104,365 @@ namespace MSolvLib.MarkGeometry
             }
 
             return lines;
+        }
+
+        /// <summary>
+        ///     Splits a given geometry into a List of points.
+        /// </summary>
+        /// <param name="geometry">The geometry</param>
+        /// <param name="howmany">The number of points</param>
+        /// <returns>Returns a given geometry split into a list of points</returns>
+        public static List<MarkGeometryPoint> Explode(IMarkGeometry geometry, int howmany)
+        {
+            List<MarkGeometryPoint> points = new List<MarkGeometryPoint>();
+
+            for (int i = 0; i < howmany; i++)
+            {
+                points.Add(
+                    GetPointAtPosition(geometry, i / (double)(howmany - 1))
+                );
+            }
+
+            return points;
+        }
+
+        /// <summary>
+        ///     Extend a line by a given amount about it's centre
+        /// </summary>
+        /// <param name="line">The line to extend</param>
+        /// <param name="extension">The amount of extension to apply</param>
+        /// <returns></returns>
+        public static MarkGeometryLine Extend(MarkGeometryLine line, double extension)
+        {
+            var transform = CombineTransformations(
+                GetTranslationTransformationMatrix(
+                    -line.Extents.Centre.X,
+                    -line.Extents.Centre.Y,
+                    -line.Extents.Centre.Z
+                ),
+                GetRotationTransformationMatrix(
+                    0, 0, 
+                    -line.Angle
+                ),
+                GetScalingTransformationMatrix(
+                    (line.Length + extension) / line.Length,
+                    1, 1
+                ),
+                GetRotationTransformationMatrix(
+                    0, 0,
+                    line.Angle
+                ),
+                GetTranslationTransformationMatrix(
+                    line.Extents.Centre.X,
+                    line.Extents.Centre.Y,
+                    line.Extents.Centre.Z
+                )
+            );
+
+            line.Transform(transform);
+            return line;
+
+            //if (Math.Abs(line.Extents.Width) < 0.0001)
+            //{
+            //    return (MarkGeometryLine)Scale(
+            //        line,
+            //        1,
+            //        (line.Extents.Height + extension) / Math.Max(line.Extents.Height, double.Epsilon)
+            //    );
+            //}
+            //else if (Math.Abs(line.Extents.Height) < 0.0001)
+            //{
+            //    return (MarkGeometryLine)Scale(
+            //        line,
+            //        (line.Extents.Width + extension) / Math.Max(line.Extents.Width, double.Epsilon),
+            //        1
+            //    );
+            //}
+
+            //var xExtension = extension * Math.Cos(line.Angle);
+            //var yExtension = extension * Math.Sin(line.Angle);
+
+            //return (MarkGeometryLine)Scale(
+            //    line,
+            //    (line.Extents.Width + xExtension) / Math.Max(line.Extents.Width, double.Epsilon),
+            //    (line.Extents.Height + yExtension) / Math.Max(line.Extents.Height, double.Epsilon)
+            //);
+        }
+
+        ///// <summary>
+        /////     Removes unnecessary joints in path, reducing the 
+        /////     number contained of lines.
+        ///// </summary>
+        ///// <param name="path">The path to simplify</param>
+        ///// <param name="deviationTolerance">Maximum gradient difference tolerance</param>
+        //public static void Simplify(MarkGeometryPath path, double deviationTolerance = 0.001)
+        //{
+        //    path.Points = Simplify(path.Points, deviationTolerance);
+        //    path.Update();
+        //    return;
+        //}
+
+        /// <summary>
+        ///     Removes unnecessary joints in lines, reducing the 
+        ///     number contained of lines.
+        ///     
+        ///     Assumes lines are order sequencially and are in contact touching
+        /// </summary>
+        /// <param name="lines">The list of lines to simplify</param>
+        /// <param name="deviationTolerance">Maximum gradient difference tolerance</param>
+        public static List<MarkGeometryLine> Simplify(IList<MarkGeometryLine> lines, double deviationTolerance = 0.001)
+        {
+            var output = new List<MarkGeometryLine>(lines.Count);
+
+            if (lines.Count <= 0)
+                return output;
+
+            var current = lines[0];
+            for (int i = 1; i < lines.Count - 1; i++)
+            {
+                var angleDelta = Math.Abs(
+                    lines[i].Angle - current.Angle
+                );
+
+                if (angleDelta <= deviationTolerance)
+                {
+                    current.EndPoint = lines[i].EndPoint;
+                }
+                else
+                {
+                    current.Update();
+                    output.Add(current);
+                    current = lines[i];
+                }
+            }
+
+            current.Update();
+            output.Add(current);
+            return output;
+        }
+
+        /// <summary>
+        ///     Combines connected paths, reducing the number of contained paths
+        /// </summary>
+        /// <param name="paths">The list of paths to simplify</param>
+        /// <param name="tolerance"></param>
+        /// <returns></returns>
+        public static List<MarkGeometryPath> Simplify(IList<MarkGeometryPath> paths, double tolerance)
+        {
+            var output = new List<MarkGeometryPath>(paths.Count);
+
+            while (paths.Count > 0)
+            {
+                var reference = paths[0];
+                paths.RemoveAt(0);
+
+                output.Add(
+                    TraceConnected(reference, paths, tolerance).Trace
+                );
+            }
+
+            return output;
+        }
+
+        /// <summary>
+        ///     Combines connected lines to form path.
+        /// </summary>
+        /// <param name="lines">The list of lines</param>
+        /// <param name="closureTolerance">The contact comparison tolerance</param>
+        /// <returns></returns>
+        public static List<MarkGeometryPath> GeneratePathsFromLines(IList<MarkGeometryLine> lines, double closureTolerance)
+        {
+            var output = new List<MarkGeometryPath>(lines.Count);
+
+            while (lines.Count > 0)
+            {
+                var reference = lines[0];
+                lines.RemoveAt(0);
+
+                output.Add(
+                    TraceConnected(reference, lines, closureTolerance).Trace
+                );
+            }
+
+            return output;
+        }
+
+        /// <summary>
+        ///     Creates a path from sequencial paths connected to the starting path
+        /// </summary>
+        /// <param name="start">The start path</param>
+        /// <param name="paths">The list of paths to search</param>
+        /// <param name="tolerance">The contact comparison tolerance</param>
+        /// <returns>The created path and a list of unsed paths</returns>
+        public static (MarkGeometryPath Trace, IList<MarkGeometryPath> UnusedPaths) TraceConnected(MarkGeometryPath start, IList<MarkGeometryPath> paths, double tolerance)
+        {
+            var trace = (MarkGeometryPath)start.Clone();
+            var loop = true;
+
+            while (loop)
+            {
+                if (trace.IsClosed)
+                    break;
+
+                var (connectedPath, connectionType) = GetNextConnectedPath(trace, paths, tolerance);
+
+                switch (connectionType)
+                {
+                    case ConnectionType.START_TO_END: // don't add connected end point
+                        trace.Points.InsertRange(0, connectedPath.Points.Take(connectedPath.Points.Count - 1));
+                        trace.Update();
+                        paths.Remove(connectedPath);
+                        break;
+
+                    case ConnectionType.END_TO_START: // don't add connected start point
+                        trace.Points.AddRange(connectedPath.Points.Skip(1));
+                        trace.Update();
+                        paths.Remove(connectedPath);
+                        break;
+
+                    case ConnectionType.START_TO_START:
+                        connectedPath.Points.Reverse(); // don't add connected end point
+                        trace.Points.InsertRange(0, connectedPath.Points.Take(connectedPath.Points.Count - 1));
+                        trace.Update();
+                        paths.Remove(connectedPath);
+                        break;
+
+                    case ConnectionType.END_TO_END:
+                        connectedPath.Points.Reverse(); // don't add connected start point
+                        trace.Points.AddRange(connectedPath.Points.Skip(1));
+                        trace.Update();
+                        paths.Remove(connectedPath);
+                        break;
+
+                    default:
+                    case ConnectionType.NONE:
+                        loop = false;
+                        break;
+                }
+            }
+
+            return (trace, paths);
+        }
+
+        /// <summary>
+        ///     Creates a path from sequencial paths connected to the starting path
+        /// </summary>
+        /// <param name="start">The start path</param>
+        /// <param name="paths">The list of paths to search</param>
+        /// <param name="tolerance">The contact comparison tolerance</param>
+        /// <returns>The created path and a list of unsed paths</returns>
+        public static (MarkGeometryPath Trace, IList<MarkGeometryLine> UnusedLines) TraceConnected(MarkGeometryLine start, IList<MarkGeometryLine> lines, double tolerance)
+        {
+            var trace = new MarkGeometryPath(start);
+            var loop = true;
+
+            while (loop)
+            {
+                if (trace.IsClosed)
+                    break;
+
+                var (connectedLine, connectionType) = GetNextConnectedLine(trace, lines, tolerance);
+
+                switch (connectionType)
+                {
+                    case ConnectionType.START_TO_END:
+                        //trace.Lines.Insert(0, connectedLine);
+                        trace.Points.Insert(0, connectedLine.StartPoint);
+                        trace.Update();
+                        lines.Remove(connectedLine);
+                        break;
+
+                    case ConnectionType.END_TO_START:
+                        trace.Points.Add(connectedLine.EndPoint);
+                        //trace.Lines.Add(connectedLine);
+                        trace.Update();
+                        lines.Remove(connectedLine);
+                        break;
+
+                    case ConnectionType.START_TO_START:
+                        trace.Points.Insert(0, connectedLine.EndPoint);
+                        //connectedLine.Reverse();
+                        //trace.Lines.Insert(0, connectedLine);
+                        trace.Update();
+                        lines.Remove(connectedLine);
+                        break;
+
+                    case ConnectionType.END_TO_END:
+                        //connectedLine.Reverse();
+                        //trace.Lines.Add(connectedLine);
+                        trace.Points.Add(connectedLine.StartPoint);
+                        trace.Update();
+                        lines.Remove(connectedLine);
+                        break;
+
+                    default:
+                    case ConnectionType.NONE:
+                        loop = false;
+                        break;
+                }
+            }
+
+            return (trace, lines);
+        }
+
+        /// <summary>
+        ///     Finds and returns the next path from the list of paths 
+        ///     connected to the reference path.
+        /// </summary>
+        /// <param name="reference">The reference path</param>
+        /// <param name="paths">The list of paths to search</param>
+        /// <param name="tolerance">The contact tolerance</param>
+        /// <returns>The connected path and connectiong type</returns>
+        public static (MarkGeometryPath ConnectedPath, ConnectionType ConnectionType) GetNextConnectedPath(MarkGeometryPath reference, IList<MarkGeometryPath> paths, double tolerance)
+        {
+            for (int i = 0; i < paths.Count; i++)
+            {
+                var connectionType = IsConnected(reference, paths[i], tolerance);
+                if (connectionType != ConnectionType.NONE)
+                    return (paths[i], connectionType);
+            }
+
+            return (null, ConnectionType.NONE);
+        }
+
+        /// <summary>
+        ///     Finds and returns the next path from the list of paths 
+        ///     connected to the reference path.
+        /// </summary>
+        /// <param name="reference">The reference path</param>
+        /// <param name="lines">The list of paths to search</param>
+        /// <param name="tolerance">The contact tolerance</param>
+        /// <returns>The connected path and connectiong type</returns>
+        public static (MarkGeometryLine ConnectedPath, ConnectionType ConnectionType) GetNextConnectedLine(MarkGeometryLine reference, IList<MarkGeometryLine> lines, double tolerance)
+        {
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var connectionType = IsConnected(reference, lines[i], tolerance);
+                if (connectionType != ConnectionType.NONE)
+                    return (lines[i], connectionType);
+            }
+
+            return (null, ConnectionType.NONE);
+        }
+
+        /// <summary>
+        ///     Finds and returns the next path from the list of paths 
+        ///     connected to the reference path.
+        /// </summary>
+        /// <param name="reference">The reference path</param>
+        /// <param name="lines">The list of paths to search</param>
+        /// <param name="tolerance">The contact tolerance</param>
+        /// <returns>The connected path and connectiong type</returns>
+        public static (MarkGeometryLine ConnectedPath, ConnectionType ConnectionType) GetNextConnectedLine(MarkGeometryPath reference, IList<MarkGeometryLine> lines, double tolerance)
+        {
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var connectionType = IsConnected(reference, lines[i], tolerance);
+                if (connectionType != ConnectionType.NONE)
+                    return (lines[i], connectionType);
+            }
+
+            return (null, ConnectionType.NONE);
         }
 
         /// <summary>
@@ -1158,6 +1568,90 @@ namespace MSolvLib.MarkGeometry
         }
 
         /// <summary>
+        ///     Checks and returns the type of connection/joint between lines/paths
+        /// </summary>
+        /// <param name="p1">The first path</param>
+        /// <param name="p2">The second path</param>
+        /// <param name="tolerance">The contact tolerance</param>
+        /// <returns>Returns the type of connection/joint between lines/path</returns>
+        public static ConnectionType IsConnected(MarkGeometryPath p1, MarkGeometryPath p2, double tolerance)
+        {
+            try
+            {
+                if (ABSMeasure2D(p1.StartPoint, p2.StartPoint) <= tolerance)
+                    return ConnectionType.START_TO_START;
+                else if (ABSMeasure2D(p1.StartPoint, p2.EndPoint) <= tolerance)
+                    return ConnectionType.START_TO_END;
+                else if (ABSMeasure2D(p1.EndPoint, p2.StartPoint) <= tolerance)
+                    return ConnectionType.END_TO_START;
+                else if (ABSMeasure2D(p1.EndPoint, p2.EndPoint) <= tolerance)
+                    return ConnectionType.END_TO_END;
+
+                return ConnectionType.NONE;
+            }
+            catch(Exception)
+            {
+                return ConnectionType.NONE;
+            }
+        }
+
+        /// <summary>
+        ///     Checks and returns the type of connection/joint between lines/paths
+        /// </summary>
+        /// <param name="p1">The first path</param>
+        /// <param name="l2">The second line</param>
+        /// <param name="tolerance">The contact tolerance</param>
+        /// <returns>Returns the type of connection/joint between lines/path</returns>
+        public static ConnectionType IsConnected(MarkGeometryPath p1, MarkGeometryLine l2, double tolerance)
+        {
+            try
+            {
+                if (ABSMeasure2D(p1.StartPoint, l2.StartPoint) <= tolerance)
+                    return ConnectionType.START_TO_START;
+                else if (ABSMeasure2D(p1.StartPoint, l2.EndPoint) <= tolerance)
+                    return ConnectionType.START_TO_END;
+                else if (ABSMeasure2D(p1.EndPoint, l2.StartPoint) <= tolerance)
+                    return ConnectionType.END_TO_START;
+                else if (ABSMeasure2D(p1.EndPoint, l2.EndPoint) <= tolerance)
+                    return ConnectionType.END_TO_END;
+
+                return ConnectionType.NONE;
+            }
+            catch (Exception)
+            {
+                return ConnectionType.NONE;
+            }
+        }
+
+        /// <summary>
+        ///     Checks and returns the type of connection/joint between lines
+        /// </summary>
+        /// <param name="l1">The first line</param>
+        /// <param name="l2">The second line</param>
+        /// <param name="tolerance">The contact tolerance</param>
+        /// <returns>Returns the type of connection/joint between lines</returns>
+        public static ConnectionType IsConnected(MarkGeometryLine l1, MarkGeometryLine l2, double tolerance)
+        {
+            try
+            {
+                if (ABSMeasure2D(l1.StartPoint, l2.StartPoint) <= tolerance)
+                    return ConnectionType.START_TO_START;
+                else if (ABSMeasure2D(l1.StartPoint, l2.EndPoint) <= tolerance)
+                    return ConnectionType.START_TO_END;
+                else if (ABSMeasure2D(l1.EndPoint, l2.StartPoint) <= tolerance)
+                    return ConnectionType.END_TO_START;
+                else if (ABSMeasure2D(l1.EndPoint, l2.EndPoint) <= tolerance)
+                    return ConnectionType.END_TO_END;
+
+                return ConnectionType.NONE;
+            }
+            catch (Exception)
+            {
+                return ConnectionType.NONE;
+            }
+        }
+
+        /// <summary>
         ///     Compare two points; Equal -> 0, Less -> -1, Greater -> 1
         /// </summary>
         /// <param name="p1">The first point to compare</param>
@@ -1239,8 +1733,7 @@ namespace MSolvLib.MarkGeometry
         /// <returns>returns True if number is touching and or between the range specified</returns>
         public static bool IsWithin(double number, double minRange, double maxRange)
         {
-            bool result = (number >= minRange) && (number <= maxRange);
-            return result;
+            return (number >= minRange) && (number <= maxRange);
         }
 
         /// <summary>
@@ -1308,14 +1801,14 @@ namespace MSolvLib.MarkGeometry
             return IsWithinX(point, extents) && IsWithinY(point, extents);
         }
 
-        //public static bool IsWithin2D(MarkGeometryPoint point, MarkGeometryPath path, double resolution=0.0001)
-        //{
-        //    var extent = CalculateExtents(new IMarkGeometry[] { point, path });
-        //    var testLine = new MarkGeometryLine(point, new MarkGeometryPoint(extent.MaxX, extent.MaxY));
+        public static bool IsWithin2D(MarkGeometryPoint point, MarkGeometryPath path, double resolution = 0.0001)
+        {
+            var extent = CalculateExtents(new IMarkGeometry[] { point, path });
+            var testLine = new MarkGeometryLine(point, new MarkGeometryPoint(extent.MaxX, extent.MaxY));
 
-        //    // if the number of intersection is odd, then the point is within
-        //    return (CalculateIntersection2D(path, testLine, resolution).Count % 2) != 0;
-        //}
+            // if the number of intersection is odd, then the point is within
+            return (CalculateIntersection2D(path, testLine, resolution).Count % 2) != 0;
+        }
 
         /// <summary>
         ///     Checks if point's position is within the specified range
@@ -1344,15 +1837,18 @@ namespace MSolvLib.MarkGeometry
             var MinZ = double.MaxValue;
             var MaxZ = double.MinValue;
 
-            foreach (var g in geometries)
+            if (geometries != null)
             {
-                MaxX = Max<double>(g.Extents.MaxX, MaxX);
-                MaxY = Max<double>(g.Extents.MaxY, MaxY);
-                MaxZ = Max<double>(g.Extents.MaxZ, MaxZ);
+                for (int i = 0; i < geometries.Length; i++)
+                {
+                    MaxX = Max<double>(geometries[i].Extents.MaxX, MaxX);
+                    MaxY = Max<double>(geometries[i].Extents.MaxY, MaxY);
+                    MaxZ = Max<double>(geometries[i].Extents.MaxZ, MaxZ);
 
-                MinX = Min<double>(g.Extents.MinX, MinX);
-                MinY = Min<double>(g.Extents.MinY, MinY);
-                MinZ = Min<double>(g.Extents.MinZ, MinZ);
+                    MinX = Min<double>(geometries[i].Extents.MinX, MinX);
+                    MinY = Min<double>(geometries[i].Extents.MinY, MinY);
+                    MinZ = Min<double>(geometries[i].Extents.MinZ, MinZ);
+                }
             }
 
             var extents = new GeometryExtents<double>();
@@ -1362,6 +1858,52 @@ namespace MSolvLib.MarkGeometry
             extents.MaxX = MaxX;
             extents.MaxY = MaxY;
             extents.MaxZ = MaxZ;
+
+            return extents;
+        }
+
+        /// <summary>
+        ///     Calculates the extents for a group of mark geometries
+        /// </summary>
+        /// <param name="geometries">The geometries of which to calculate the extents</param>
+        /// <returns>The geometry extents of the given mark geometries</returns>
+        public static GeometryExtents<double> CalculateExtents(IList<IMarkGeometry> geometries)
+        {
+            var MinX = double.MaxValue;
+            var MaxX = double.MinValue;
+
+            var MinY = double.MaxValue;
+            var MaxY = double.MinValue;
+
+            var MinZ = double.MaxValue;
+            var MaxZ = double.MinValue;
+
+            for (int i=0; i< geometries.Count; i++)
+            {
+                if (geometries[i].Extents.MaxX > MaxX)
+                    MaxX = geometries[i].Extents.MaxX;
+                if (geometries[i].Extents.MaxY > MaxY)
+                    MaxY = geometries[i].Extents.MaxY;
+                if (geometries[i].Extents.MaxZ > MaxZ)
+                    MaxZ = geometries[i].Extents.MaxZ;
+
+                if (geometries[i].Extents.MinX < MinX)
+                    MinX = geometries[i].Extents.MinX;
+                if (geometries[i].Extents.MinY < MinY)
+                    MinY = geometries[i].Extents.MinY;
+                if (geometries[i].Extents.MinZ < MinZ)
+                    MinZ = geometries[i].Extents.MinZ;
+            }
+
+            var extents = new GeometryExtents<double>()
+            {
+                MinX = MinX,
+                MinY = MinY,
+                MinZ = MinZ,
+                MaxX = MaxX,
+                MaxY = MaxY,
+                MaxZ = MaxZ
+            };
 
             return extents;
         }
@@ -1382,7 +1924,7 @@ namespace MSolvLib.MarkGeometry
             var MinZ = double.MaxValue;
             var MaxZ = double.MinValue;
 
-            foreach (var g in geometries)
+            foreach(var g in geometries)
             {
                 MaxX = Max<double>(g.Extents.MaxX, MaxX);
                 MaxY = Max<double>(g.Extents.MaxY, MaxY);
@@ -1434,12 +1976,54 @@ namespace MSolvLib.MarkGeometry
             return lines;
         }
 
-        public static List<MarkGeometryPath> SplitByIntersections(MarkGeometryPath p1In, MarkGeometryPath p2In, double resolution=0.0001)
+        /// <summary>
+        ///     Converts an array of points into an enumerable of lines
+        /// </summary>
+        /// <param name="points">The array of points</param>
+        /// <returns>Returns the generated enumerable of lines</returns>
+        public static List<MarkGeometryLine> ToLines(IList<MarkGeometryPoint> points)
+        {
+            List<MarkGeometryLine> lines = new List<MarkGeometryLine>();
+
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                lines.Add(new MarkGeometryLine(points[i], points[i + 1]));
+            }
+
+            return lines;
+        }
+
+        /// <summary>
+        ///     Converts an array of points into an enumerable of lines
+        /// </summary>
+        /// <param name="points">The array of points</param>
+        /// <returns>Returns the generated enumerable of lines</returns>
+        public static (List<MarkGeometryLine> Lines, double MinLineLength, double Perimeter) GetLinesAndStatistics(IList<MarkGeometryPoint> points)
+        {
+            double perimeter = 0;
+            double minimumLength = double.MaxValue;
+            List<MarkGeometryLine> lines = new List<MarkGeometryLine>();
+
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                var line = new MarkGeometryLine(points[i], points[i + 1]);
+
+                if (line.Length < minimumLength)
+                    minimumLength = line.Length;
+
+                lines.Add(line);
+                perimeter += line.Length;
+            }
+
+            return (lines, minimumLength, perimeter);
+        }
+
+        public static List<MarkGeometryPath> SplitByIntersections(MarkGeometryPath p1In, MarkGeometryPath p2In, double resolution = 0.0001)
         {
             var intersectingSegments = new List<MarkGeometryPath>();
 
             var lines = new List<MarkGeometryLine>();
-            foreach(var line in p1In.Lines)
+            foreach (var line in ToLines(p1In.Points))
             {
                 var intersections = CalculateIntersection2D(p2In, line).OrderBy(x => Measure2D(x, line.StartPoint)).ToList();
 
@@ -1457,7 +2041,7 @@ namespace MSolvLib.MarkGeometry
                     lines.Clear();
                     lines = ToLines(intersections.ToArray());
 
-                    foreach(var ln in lines)
+                    foreach (var ln in lines)
                     {
                         intersectingSegments.Add(
                             new MarkGeometryPath(ln)
@@ -1467,7 +2051,7 @@ namespace MSolvLib.MarkGeometry
                             }
                         );
                     }
-                    
+
                     lines.Clear();
                     lines.Add(new MarkGeometryLine(intersections[0], line.EndPoint));
                 }
@@ -1491,7 +2075,7 @@ namespace MSolvLib.MarkGeometry
             return intersectingSegments;
         }
 
-        public static MarkGeometryPath MakeFromUnion2D(MarkGeometryPath p1, MarkGeometryPath p2, double resolution=0.0001)
+        public static MarkGeometryPath MakeFromUnion2D(MarkGeometryPath p1, MarkGeometryPath p2, double resolution = 0.0001)
         {
             var segA = SplitByIntersections(p1, p2, resolution);
             var segB = SplitByIntersections(p2, p1, resolution);
@@ -1501,14 +2085,14 @@ namespace MSolvLib.MarkGeometry
 
             var lines = new List<MarkGeometryLine>();
 
-            foreach(var seg in segA)
+            foreach (var seg in segA)
             {
-                lines.AddRange(seg.Lines);
+                lines.AddRange(ToLines(seg.Points));
             }
 
             foreach (var seg in segB)
             {
-                lines.AddRange(seg.Lines);
+                lines.AddRange(ToLines(seg.Points));
             }
 
             return new MarkGeometryPath(lines.ToArray())
@@ -1531,15 +2115,15 @@ namespace MSolvLib.MarkGeometry
 
             foreach (var seg in segA)
             {
-                lines.AddRange(seg.Lines);
+                lines.AddRange(ToLines(seg.Points));
             }
 
             foreach (var seg in segB)
             {
-                lines.AddRange(seg.Lines);
+                lines.AddRange(ToLines(seg.Points));
             }
 
-            return new MarkGeometryPath(lines.ToArray())
+            return new MarkGeometryPath(lines)
             {
                 Fill = p1.Fill,
                 Stroke = p1.Stroke,
@@ -1559,12 +2143,12 @@ namespace MSolvLib.MarkGeometry
 
             foreach (var seg in segA)
             {
-                lines.AddRange(seg.Lines);
+                lines.AddRange(ToLines(seg.Points));
             }
 
             foreach (var seg in segB)
             {
-                lines.AddRange(seg.Lines);
+                lines.AddRange(ToLines(seg.Points));
             }
 
             return new MarkGeometryPath(lines.ToArray())
@@ -1575,7 +2159,7 @@ namespace MSolvLib.MarkGeometry
             };
         }
 
-        public static List<IMarkGeometry> ClipGeometry(IMarkGeometry[] geometriesIn, MarkGeometryRectangle boundaryIn)
+        public static List<IMarkGeometry> ClipGeometry(IEnumerable<IMarkGeometry> geometriesIn, MarkGeometryRectangle boundaryIn)
         {
             var geometries = new List<IMarkGeometry>();
 
@@ -1670,7 +2254,7 @@ namespace MSolvLib.MarkGeometry
             }
             else if (geometryIn is MarkGeometryCircle circle)
             {
-                return ClipGeometry( new MarkGeometryPath(circle), boundaryIn);
+                return ClipGeometry(new MarkGeometryPath(circle), boundaryIn);
             }
             else if (geometryIn is MarkGeometryArc arc)
             {
@@ -1696,7 +2280,7 @@ namespace MSolvLib.MarkGeometry
             return null;
         }
 
-        public static Dictionary<MarkGeometryRectangle, List<IMarkGeometry>> GenerateTiles(IMarkGeometry[] geometriesIn, double tileWidth, double tileHeight, int padding=5)
+        public static Dictionary<MarkGeometryRectangle, List<IMarkGeometry>> GenerateTiles(IMarkGeometry[] geometriesIn, double tileWidth, double tileHeight, int padding = 5)
         {
             var _tiles = new Dictionary<MarkGeometryRectangle, List<IMarkGeometry>>();
 
@@ -1940,7 +2524,7 @@ namespace MSolvLib.MarkGeometry
         /// <returns>`True` if file was successfully created else returns `False`</returns>
         public static bool SaveDXF(string fileName, Dictionary<string, IList<IMarkGeometry>> labelledGeometries)
         {
-            DxfDocument document = new DxfDocument(new HeaderVariables());
+            var document = new netDxf.DxfDocument(new HeaderVariables());
 
             foreach(var lbo in labelledGeometries)
             {
@@ -1963,7 +2547,7 @@ namespace MSolvLib.MarkGeometry
         /// <returns>`True` if file was successfully created else returns `False`</returns>
         public static bool SaveDXF(string fileName, string defaultLayerName, params IMarkGeometry[] geometries)
         {
-            DxfDocument document = new DxfDocument(new HeaderVariables());
+            var document = new netDxf.DxfDocument(new HeaderVariables());
 
             foreach (var gm in geometries)
             {
@@ -1982,7 +2566,26 @@ namespace MSolvLib.MarkGeometry
         /// <returns>`True` if file was successfully created else returns `False`</returns>
         public static bool SaveDXF(string fileName, params IMarkGeometry[] geometries)
         {
-            DxfDocument document = new DxfDocument(new HeaderVariables());
+            var document = new netDxf.DxfDocument(new HeaderVariables());
+
+            foreach (var gm in geometries)
+            {
+                document.AddEntity(gm.GetAsDXFEntity());
+            }
+
+            document.Save(fileName);
+            return File.Exists(fileName);
+        }
+
+        /// <summary>
+        ///     Writes the given mark geometries to a DXF file.
+        /// </summary>
+        /// <param name="fileName">The name of the output/generated file</param>
+        /// <param name="geometries">The geometries to write to file</param>
+        /// <returns>`True` if file was successfully created else returns `False`</returns>
+        public static bool SaveDXF(string fileName, IList<IMarkGeometry> geometries)
+        {
+            var document = new netDxf.DxfDocument(new HeaderVariables());
 
             foreach (var gm in geometries)
             {

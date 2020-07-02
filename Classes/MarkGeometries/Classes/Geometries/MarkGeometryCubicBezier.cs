@@ -1,5 +1,4 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using System.Collections.Generic;
+﻿using System.Numerics;
 
 namespace MSolvLib.MarkGeometry
 {
@@ -21,8 +20,9 @@ namespace MSolvLib.MarkGeometry
             }
         }
 
-        public MarkGeometryPoint StartPoint { get; set; } = new MarkGeometryPoint();
-        public MarkGeometryPoint EndPoint { get; set; } = new MarkGeometryPoint();
+        public new MarkGeometryPoint StartPoint { get; set; }
+        public new MarkGeometryPoint EndPoint { get; set; }
+
         public MarkGeometryPoint ControlPoint_1 { get; set; } = new MarkGeometryPoint();
         public MarkGeometryPoint ControlPoint_2 { get; set; } = new MarkGeometryPoint();
 
@@ -45,19 +45,12 @@ namespace MSolvLib.MarkGeometry
 
         public void GenerateView()
         {
-            Lines = new List<MarkGeometryLine>();
-
-            GeometricArithmeticModule.LookAheadStepPositionIterationHelper(VertexCount,
-                (current, next) =>
-                {
-                    Lines.Add(new MarkGeometryLine(
-                        GeometricArithmeticModule.GetPointAtPosition(StartPoint, EndPoint, ControlPoint_1, ControlPoint_2, current),
-                        GeometricArithmeticModule.GetPointAtPosition(StartPoint, EndPoint, ControlPoint_1, ControlPoint_2, next)
-                    ));
-
-                    return true;
-                }
-            );
+            for(int i=0; i<VertexCount; i++)
+            {
+                Points.Add(GeometricArithmeticModule.GetPointAtPosition(
+                    StartPoint, EndPoint, ControlPoint_1, ControlPoint_2, i / (double)(VertexCount-1))
+                );
+            }
         }
 
         public override void Update()
@@ -66,7 +59,7 @@ namespace MSolvLib.MarkGeometry
             base.Update();
         }
 
-        public override void Transform(Matrix<double> transformationMatrixIn)
+        public override void Transform(Matrix4x4 transformationMatrixIn)
         {
             StartPoint.Transform(transformationMatrixIn);
             ControlPoint_1.Transform(transformationMatrixIn);

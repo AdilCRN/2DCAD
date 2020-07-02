@@ -1,7 +1,6 @@
 ﻿using Emgu.CV.Structure;
-using MathNet.Numerics.LinearAlgebra;
 using System;
-using System.Collections.Generic;
+using System.Numerics;
 using System.Xml;
 using System.Xml.Serialization;
 
@@ -71,7 +70,7 @@ namespace MSolvLib.MarkGeometry
             }
         }
 
-        public List<MarkGeometryPoint> Points { get; set; } = new List<MarkGeometryPoint>();
+        public MarkGeometryPoint[] Points { get; set; } = new MarkGeometryPoint[2];
 
         public MarkGeometryLine()
             : base()
@@ -135,39 +134,19 @@ namespace MSolvLib.MarkGeometry
             Update();
         }
 
-        public MarkGeometryLine(Matrix<double> matrix)
-            : base()
+        public static explicit operator Matrix4x4(MarkGeometryLine line)
         {
-            StartPoint = new MarkGeometryPoint(matrix[0, 0], matrix[1, 0], matrix[2, 0]);
-            EndPoint = new MarkGeometryPoint(matrix[0, 1], matrix[1, 1], matrix[2, 1]);
-            ReferencePoint = (MarkGeometryPoint) StartPoint.Clone();
-
-            Update();
-        }
-
-        public static explicit operator Matrix<double>(MarkGeometryLine line)
-        {
-            Matrix<double> matrix = Matrix<double>.Build.Dense(3, 2);
-            matrix[0, 0] = line.StartPoint.X;
-            matrix[1, 0] = line.StartPoint.Y;
-            matrix[2, 0] = line.StartPoint.Z;
-
-            matrix[0, 1] = line.EndPoint.X;
-            matrix[1, 1] = line.EndPoint.Y;
-            matrix[2, 1] = line.EndPoint.Z;
-
-            return matrix;
+            return new Matrix4x4(
+                (float)line.StartPoint.X, (float)line.EndPoint.X, 0, 0,
+                (float)line.StartPoint.Y, (float)line.EndPoint.Y, 0, 0,
+                (float)line.StartPoint.Z, (float)line.EndPoint.Z, 1, 0,
+                1, 1, 0, 1
+            );
         }
 
         public static explicit operator MarkGeometryPoint[](MarkGeometryLine line)
         {
-            List<MarkGeometryPoint> points = new List<MarkGeometryPoint>
-            {
-                line.StartPoint,
-                line.EndPoint,
-            };
-
-            return points.ToArray();
+            return new MarkGeometryPoint[] { line.StartPoint, line.EndPoint };
         }
 
         public static implicit operator LineSegment2DF(MarkGeometryLine line)
@@ -177,9 +156,8 @@ namespace MSolvLib.MarkGeometry
 
         public override void Update()
         {
-            Points = new List<MarkGeometryPoint>();
-            Points.Add(StartPoint);
-            Points.Add(EndPoint);
+            Points[0] = StartPoint;
+            Points[1] = EndPoint;
 
             SetExtents();
         }
@@ -187,6 +165,12 @@ namespace MSolvLib.MarkGeometry
         public override object Clone()
         {
             return new MarkGeometryLine(this);
+        }
+
+        public void Reverse()
+        {
+            (StartPoint, EndPoint) = (EndPoint, StartPoint);
+            Update();
         }
 
         public MarkGeometryPoint GetMidpoint()
@@ -206,7 +190,7 @@ namespace MSolvLib.MarkGeometry
             Extents.MaxZ = Math.Max(StartPoint.Z, EndPoint.Z);
         }
 
-        public override void Transform(Matrix<double> transformationMatrixIn)
+        public override void Transform(Matrix4x4 transformationMatrixIn)
         {
             StartPoint.Transform(transformationMatrixIn);
             EndPoint.Transform(transformationMatrixIn);
@@ -263,7 +247,7 @@ namespace MSolvLib.MarkGeometry
 
         public override string ToString()
         {
-            return $"{{StartPoint: {StartPoint.ToString()}, EndPoint: {EndPoint.ToString()}}}";
+            return $"{{'StartPoint': {StartPoint}, 'EndPoint': {EndPoint}}}";
         }
     }
 }
