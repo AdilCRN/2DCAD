@@ -83,6 +83,7 @@
     <Compile Include="Classes\ContourHatcher\Utils\ContourQuadTree.cs" />
     <Compile Include="Classes\ContourHatcher\Utils\IntersectionBinaryTree.cs" />
     <Compile Include="Classes\ContourHatcher\Utils\LineEquation.cs" />
+    <Compile Include="Classes\DRLParser\DRLParser.cs" />
     <Compile Include="Classes\DXFParser\AdvancedLineStreamReader.cs" />
     <Compile Include="Classes\DXFParser\DXFParser.cs" />
     <Compile Include="Classes\GeometryToImageConverter.cs" />

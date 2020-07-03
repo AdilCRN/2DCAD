@@ -13,7 +13,7 @@ namespace SharpGLShader
     public class MGLShader
     {
         #region Section: Static Properties
-        
+
         public static double[] Red = new double[] { 1.0, 0.0, 0.0 };
         public static double[] Green = new double[] { 0.0, 1.0, 0.0 };
         public static double[] Blue = new double[] { 0.0, 0.0, 1.0 };
@@ -103,7 +103,7 @@ namespace SharpGLShader
         #endregion
 
         #region Section: Constructor
-        
+
         public MGLShader()
             : this(200, 200)
         {
@@ -121,7 +121,7 @@ namespace SharpGLShader
             _aspectRatio = _windowSize.Width / _windowSize.Height;
 
             Reset();
-        } 
+        }
 
         #endregion
 
@@ -184,8 +184,35 @@ namespace SharpGLShader
                 return;
             }
 
-            for (int i = 0; i < geometriesIn.Count; i++)
-                AddDefault(geometriesIn[i], color);
+            if (geometriesIn.All(x => x is MarkGeometryPoint))
+            {
+                var vtx = new VertexGroup()
+                {
+                    Color = color
+                };
+
+                for (int i = 0; i < geometriesIn.Count; i++)
+                    vtx.Vertices.AddRange(ToDouble(geometriesIn[i] as MarkGeometryPoint));
+
+                _points.Add(vtx);
+            }
+            else if (geometriesIn.All(x => x is MarkGeometryLine))
+            {
+                var vtx = new VertexGroup()
+                {
+                    Color = color
+                };
+
+                for (int i = 0; i < geometriesIn.Count; i++)
+                    vtx.Vertices.AddRange(ToDouble(geometriesIn[i] as MarkGeometryLine));
+
+                _points.Add(vtx);
+            }
+            else
+            {
+                for (int i = 0; i < geometriesIn.Count; i++)
+                    AddDefault(geometriesIn[i], color);
+            }
         }
 
         public virtual void AddDefault(IMarkGeometry geometryIn)
@@ -382,10 +409,6 @@ namespace SharpGLShader
                 // reset the modelview matrix
                 gl.LoadIdentity();
 
-                // set sizes
-                gl.PointSize(DefaultPointSize);
-                gl.LineWidth(DefaultLineWidth);
-
                 // apply CAD offset
                 gl.Translate(_trueScale * _cadOffset.X, _trueScale * _cadOffset.Y, 0);
 
@@ -394,6 +417,10 @@ namespace SharpGLShader
 
                 // apply PAN offset
                 gl.Translate(_panOffset.X / _trueScale, _panOffset.Y / _trueScale, 0);
+
+                // set sizes
+                gl.PointSize((float)(_trueScale * DefaultPointSize));
+                gl.LineWidth((float)(_trueScale * DefaultLineWidth));
 
                 // draw contents in buffer
                 Draw(gl);
@@ -445,8 +472,8 @@ namespace SharpGLShader
                         gl.Color(vertexGroups[i].Color[0], vertexGroups[i].Color[1], vertexGroups[i].Color[2], vertexGroups[i].Color[3]);
                 }
 
-                for (int j = 0; j < vertexGroups[i].Vertices.Count; j+=2)
-                    gl.Vertex(vertexGroups[i].Vertices[j], vertexGroups[i].Vertices[j+1]);
+                for (int j = 0; j < vertexGroups[i].Vertices.Count; j += 2)
+                    gl.Vertex(vertexGroups[i].Vertices[j], vertexGroups[i].Vertices[j + 1]);
             }
             gl.End();
         }
@@ -489,8 +516,8 @@ namespace SharpGLShader
                         gl.Color(color[0], color[1], color[2], color[3]);
                 }
 
-                for (int j = 0; j < vertexGroups[i].Vertices.Count; j+=2)
-                    gl.Vertex(vertexGroups[i].Vertices[j], vertexGroups[i].Vertices[j+1]);
+                for (int j = 0; j < vertexGroups[i].Vertices.Count; j += 2)
+                    gl.Vertex(vertexGroups[i].Vertices[j], vertexGroups[i].Vertices[j + 1]);
             }
             gl.End();
         }
@@ -510,9 +537,9 @@ namespace SharpGLShader
                     gl.Color(color[0], color[1], color[2], color[3]);
             }
 
-            for (int i = 0; i < vertices.Count; i+=2)
+            for (int i = 0; i < vertices.Count; i += 2)
             {
-                gl.Vertex(vertices[i], vertices[i+1]);
+                gl.Vertex(vertices[i], vertices[i + 1]);
             }
 
             gl.End();
@@ -591,8 +618,8 @@ namespace SharpGLShader
         {
             double tmpZoom = _zoom;
             _zoom = GeometricArithmeticModule.Constrain(
-                _zoom + ((delta > 0 ? _zoomFactor : -_zoomFactor) * _trueScale), 
-                0.001, 
+                _zoom + ((delta > 0 ? _zoomFactor : -_zoomFactor) * _trueScale),
+                0.001,
                 1000
             );
 
@@ -636,6 +663,16 @@ namespace SharpGLShader
         #endregion
 
         #region Section: Static Helpers
+
+        protected static double[] ToDouble(MarkGeometryPoint point)
+        {
+            return new double[] { point.X, point.Y };
+        }
+
+        protected static double[] ToDouble(MarkGeometryLine line)
+        {
+            return new double[] { line.StartPoint.X, line.StartPoint.Y, line.EndPoint.X, line.EndPoint.Y };
+        }
 
         protected static List<MVertex> ToVertexes(MarkGeometryCircle circle)
         {
