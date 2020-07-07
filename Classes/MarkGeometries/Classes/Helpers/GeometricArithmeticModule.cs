@@ -2578,9 +2578,25 @@ namespace MSolvLib.MarkGeometry
                     }
                     else if (e is netDxf.Entities.LwPolyline lwPLine)
                     {
-                        callback(
-                            (layerName, new MarkGeometryPath(lwPLine))
-                        );
+                        foreach(var entity in lwPLine.Explode())
+                        {
+                            if (entity is netDxf.Entities.Line lineEntity)
+                            {
+                                callback(
+                                    (layerName, new MarkGeometryLine(lineEntity))
+                                );
+                            }
+                            else if (entity is netDxf.Entities.Arc arcEntity)
+                            {
+                                callback(
+                                    (layerName, new MarkGeometryArc(arcEntity))
+                                );
+                            }
+                            else
+                            {
+                                // unknown entity
+                            }
+                        }
                     }
                     else if (e is netDxf.Entities.Polyline pLine)
                     {
@@ -2603,7 +2619,7 @@ namespace MSolvLib.MarkGeometry
                     else if (e is netDxf.Entities.Arc arc)
                     {
                         callback(
-                            (layerName, new MarkGeometryPath(new MarkGeometryArc(arc)))
+                            (layerName, new MarkGeometryArc(arc))
                         );
                     }
                 }

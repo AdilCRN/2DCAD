@@ -51,8 +51,8 @@ namespace MSolvLib.MarkGeometry
             : base()
         {
             Radius = arc.Radius;
-            StartAngle = arc.StartAngle * Math.PI / 180.0;
-            EndAngle = arc.EndAngle * Math.PI / 180.0;
+            StartAngle = GeometricArithmeticModule.ToRadians(arc.StartAngle);
+            EndAngle = GeometricArithmeticModule.ToRadians(arc.EndAngle);
             CentrePoint = new MarkGeometryPoint(arc.Center);
 
             Update();
@@ -146,7 +146,7 @@ namespace MSolvLib.MarkGeometry
         public override void SetExtents()
         {
             if (EndAngle < StartAngle)
-                Sweep = (EndAngle + (2 * Math.PI)) - StartAngle;
+                Sweep = (EndAngle + (2d * Math.PI)) - StartAngle;
             else
                 Sweep = EndAngle - StartAngle;
 

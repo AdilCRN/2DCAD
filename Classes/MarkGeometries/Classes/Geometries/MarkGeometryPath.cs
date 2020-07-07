@@ -74,24 +74,36 @@ namespace MSolvLib.MarkGeometry
             Update();
         }
 
-        public MarkGeometryPath(LwPolyline lwPolyline)
-            : base()
-        {
-            Points.AddRange(
-                lwPolyline.Vertexes.ConvertAll(v => new MarkGeometryPoint(v))
-            );
+        //public MarkGeometryPath(LwPolyline lwPolyline)
+        //    : base()
+        //{
+        //    foreach (var entity in lwPolyline.Explode())
+        //    {
+        //        if (entity is Line lineEntity)
+        //        {
+        //            Points.Add(new MarkGeometryPoint(lineEntity.StartPoint));
+        //            Points.Add(new MarkGeometryPoint(lineEntity.EndPoint));
+        //        }
+        //        else if (entity is Arc arcEntity)
+        //        {
+        //            arcEntity.PolygonalVertexes
+        //        }
+        //    }
+        //    Points.AddRange(
+        //        lwPolyline.Vertexes.ConvertAll(v => new MarkGeometryPoint(v))
+        //    );
 
-            if (
-                lwPolyline.IsClosed &&
-                GeometricArithmeticModule.Compare(StartPoint, EndPoint, ClosureTolerance) != 0)
-            {
-                Points.Add((MarkGeometryPoint)StartPoint.Clone());
-            }
+        //    if (
+        //        lwPolyline.IsClosed &&
+        //        GeometricArithmeticModule.Compare(StartPoint, EndPoint, ClosureTolerance) != 0)
+        //    {
+        //        Points.Add((MarkGeometryPoint)StartPoint.Clone());
+        //    }
 
-            // TODO : Calculate centroid
-            CentrePoint = new MarkGeometryPoint();
-            Update();
-        }
+        //    // TODO : Calculate centroid
+        //    CentrePoint = new MarkGeometryPoint();
+        //    Update();
+        //}
 
         public MarkGeometryPath(Polyline polyline)
             : base()
