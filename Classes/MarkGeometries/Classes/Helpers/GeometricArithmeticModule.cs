@@ -9,6 +9,8 @@ using System.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
 using System.Windows.Media;
+using System.Data;
+using MSolvLib.HardwareClasses.RTC.RTC5;
 
 namespace MSolvLib.MarkGeometry
 {
@@ -343,6 +345,18 @@ namespace MSolvLib.MarkGeometry
         {
             return Matrix4x4.CreateTranslation(
                 (float)tx, (float)ty, (float)tz
+            );
+        }
+
+        /// <summary>
+        ///     Returns the translation transformation matrix for the given parameters.
+        /// </summary>
+        /// <param name="point">A point with its values representing the magnitude of transformation in XYZ</param>
+        /// <returns>Returns the translation transformation matrix for the given parameters.</returns>
+        public static Matrix4x4 GetTranslationTransformationMatrix(MarkGeometryPoint point)
+        {
+            return Matrix4x4.CreateTranslation(
+                (float)point.X, (float)point.Y, (float)point.Z
             );
         }
 
@@ -694,15 +708,41 @@ namespace MSolvLib.MarkGeometry
         }
 
         /// <summary>
+        ///     Transforms the given geometries such that its combined centre position is aligned with the origin.
+        /// </summary>
+        /// <param name="geometries">The input geometries to align</param>
+        /// <returns>The transformed geometries.</returns>
+        public static IList<IMarkGeometry> AlignCentreToOrigin(IList<IMarkGeometry> geometries)
+        {
+            var extent = CalculateExtents(geometries);
+            return AlignCentreToReferencePoint(geometries, extent.Centre);
+        }
+
+        /// <summary>
         ///     Transforms the given geometries such that its combined centre position is aligned with the reference point.
         /// </summary>
         /// <param name="geometries">The input geometries to align</param>
         /// <returns>The transformed geometries.</returns>
         public static IMarkGeometry[] AlignCentreToReferencePoint(IMarkGeometry[] geometries, MarkGeometryPoint point)
         {
-            foreach (var geometry in geometries)
+            for (int i = 0; i < geometries.Length; i++)
             {
-                Translate(geometry, -point.X, -point.Y, -point.Z);
+                Translate(geometries[i], -point.X, -point.Y, -point.Z);
+            }
+
+            return geometries;
+        }
+
+        /// <summary>
+        ///     Transforms the given geometries such that its combined centre position is aligned with the reference point.
+        /// </summary>
+        /// <param name="geometries">The input geometries to align</param>
+        /// <returns>The transformed geometries.</returns>
+        public static IList<IMarkGeometry> AlignCentreToReferencePoint(IList<IMarkGeometry> geometries, MarkGeometryPoint point)
+        {
+            for (int i = 0; i < geometries.Count; i++)
+            {
+                Translate(geometries[i], -point.X, -point.Y, -point.Z);
             }
 
             return geometries;
@@ -2405,6 +2445,102 @@ namespace MSolvLib.MarkGeometry
         public static double ToRadians(double angle)
         {
             return angle * Math.PI / 180.0;
+        }
+
+        /// <summary>
+        ///     Use method to load pattern into the scanner using the RTC5 Wrapper.
+        /// </summary>
+        /// <param name="pattern">A list of mark geometries to be loaded into the scanner</param>
+        /// <param name="cardNumber">The number of the RTC 5 card</param>
+        /// <param name="listNumber">The id of the RTC 5's list/instruction set</param>
+        /// <param name="dwellDelayMicroseconds">The dwell delay (in microseconds) applied when marking points. See scanner manual for timed_mark_abs {@T parameter}</param>
+        /// <returns>Returns true is succesful, otherwise returns false</returns>
+        public static bool LoadPatternIntoRTC5_2D(
+            IList<IMarkGeometry> pattern,
+            Func<double, int> millimetresToBitsConverter,
+            uint cardNumber = 1U,
+            uint listNumber = 1U,
+            double dwellDelayMicroseconds = 100d,
+            bool _createList = true
+        )
+        {
+            if (_createList)
+            {
+                while (RTC5Wrap.n_load_list(cardNumber, listNumber, 0) == 0) ;
+                RTC5Wrap.n_long_delay(cardNumber, 1000U);
+                RTC5Wrap.n_set_start_list(cardNumber, listNumber);
+            }
+
+            for (int i = 0; i < pattern.Count; i++)
+            {
+                if (pattern[i] is MarkGeometryPoint point)
+                {
+                    int x = millimetresToBitsConverter(point.X);
+                    int y = millimetresToBitsConverter(point.Y);
+
+                    RTC5Wrap.n_jump_abs(cardNumber, x, y);
+                    RTC5Wrap.n_timed_mark_abs(cardNumber, x, y, dwellDelayMicroseconds);
+                }
+                else if (pattern[i] is MarkGeometryLine line)
+                {
+                    int sx = millimetresToBitsConverter(line.StartPoint.X);
+                    int sy = millimetresToBitsConverter(line.StartPoint.Y);
+                    int ex = millimetresToBitsConverter(line.EndPoint.X);
+                    int ey = millimetresToBitsConverter(line.EndPoint.Y);
+
+                    RTC5Wrap.n_jump_abs(cardNumber, sx, sy);
+                    RTC5Wrap.n_mark_abs(cardNumber, ex, ey);
+                }
+                else if (pattern[i] is MarkGeometryCircle circle)
+                {
+                    int sx = millimetresToBitsConverter(circle.StartPoint.X);
+                    int sy = millimetresToBitsConverter(circle.StartPoint.Y);
+                    int cx = millimetresToBitsConverter(circle.CentrePoint.X);
+                    int cy = millimetresToBitsConverter(circle.CentrePoint.Y);
+
+                    RTC5Wrap.n_jump_abs(cardNumber, sx, sy);
+                    RTC5Wrap.n_arc_abs(cardNumber, cx, cy, 360d);
+                }
+                else if (pattern[i] is MarkGeometryArc arc)
+                {
+                    int sx = millimetresToBitsConverter(arc.StartPoint.X);
+                    int sy = millimetresToBitsConverter(arc.StartPoint.Y);
+                    int cx = millimetresToBitsConverter(arc.CentrePoint.X);
+                    int cy = millimetresToBitsConverter(arc.CentrePoint.Y);
+
+                    RTC5Wrap.n_jump_abs(cardNumber, sx, sy);
+                    RTC5Wrap.n_arc_abs(cardNumber, cx, cy, ToDegrees(arc.Sweep));
+                }
+                else if (pattern[i] is MarkGeometryPath path)
+                {
+                    if (path.Points.Count <= 0)
+                        continue;
+
+                    int sx = millimetresToBitsConverter(path.StartPoint.X);
+                    int sy = millimetresToBitsConverter(path.StartPoint.Y);
+                    RTC5Wrap.n_jump_abs(cardNumber, sx, sy);
+
+                    for (int j = 1; j < path.Points.Count; j++)
+                    {
+                        int x = millimetresToBitsConverter(path.Points[j].X);
+                        int y = millimetresToBitsConverter(path.Points[j].Y);
+                        RTC5Wrap.n_mark_abs(cardNumber, x, y);
+                    }
+                }
+                else if (pattern[i] is IMarkGeometryWrapper wrapper)
+                {
+                    if (!LoadPatternIntoRTC5_2D(wrapper.Flatten(), millimetresToBitsConverter, cardNumber, listNumber, dwellDelayMicroseconds, _createList))
+                        return false;
+                }
+            }
+
+            if (_createList)
+            {
+                RTC5Wrap.n_jump_abs(cardNumber, 0, 0);
+                RTC5Wrap.n_set_end_of_list(cardNumber);
+            }
+
+            return true;
         }
 
         /// <summary>
