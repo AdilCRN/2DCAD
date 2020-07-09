@@ -372,14 +372,14 @@ namespace MSolvLib.MarkGeometry
 
         public override void SetExtents()
         {
-            Extents.MinX = Double.MaxValue;
-            Extents.MaxX = Double.MinValue;
+            Extents.MinX = double.MaxValue;
+            Extents.MaxX = double.MinValue;
 
-            Extents.MinY = Double.MaxValue;
-            Extents.MaxY = Double.MinValue;
+            Extents.MinY = double.MaxValue;
+            Extents.MaxY = double.MinValue;
 
-            Extents.MinZ = Double.MaxValue;
-            Extents.MaxZ = Double.MinValue;
+            Extents.MinZ = double.MaxValue;
+            Extents.MaxZ = double.MinValue;
 
             int[] ns = {
                 Points.Count(),

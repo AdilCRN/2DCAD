@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{AE294AEA-6669-4AB5-9976-EF212215D9B4}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <RootNamespace>MarkGeometriesLib</RootNamespace>
     <AssemblyName>MarkGeometriesLib</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
@@ -36,6 +36,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Emgu.CV.UI, Version=4.2.0.3662, Culture=neutral, PublicKeyToken=7281126722ab4438, processorArchitecture=MSIL">
@@ -83,6 +86,8 @@
     <Compile Include="Classes\ContourHatcher\Utils\ContourQuadTree.cs" />
     <Compile Include="Classes\ContourHatcher\Utils\IntersectionBinaryTree.cs" />
     <Compile Include="Classes\ContourHatcher\Utils\LineEquation.cs" />
+    <Compile Include="Classes\DRLParser\CoordinateSystem.cs" />
+    <Compile Include="Classes\DRLParser\DecimalPointNotationStyle.cs" />
     <Compile Include="Classes\DRLParser\DRLParser.cs" />
     <Compile Include="Classes\DXFParser\AdvancedLineStreamReader.cs" />
     <Compile Include="Classes\DXFParser\DXFParser.cs" />

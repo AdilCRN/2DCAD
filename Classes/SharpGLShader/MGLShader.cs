@@ -1,4 +1,5 @@
-﻿using MSolvLib.Classes.MarkGeometries.Classes.Helpers;
+﻿using MathNet.Numerics.Distributions;
+using MSolvLib.Classes.MarkGeometries.Classes.Helpers;
 using MSolvLib.MarkGeometry;
 using SharpGL;
 using SharpGLShader.Utils;
@@ -186,6 +187,28 @@ namespace SharpGLShader
 
             if (geometriesIn.All(x => x is MarkGeometryPoint))
             {
+                var currentExtents = GeometryExtents<double>.Combine(
+                    new GeometryExtents<double>()
+                    {
+                        MinX = MinX,
+                        MaxX = MaxX,
+                        MinY = MinY,
+                        MaxY = MaxY
+                    },
+                    GeometricArithmeticModule.CalculateExtents(
+                        geometriesIn
+                    )
+                );
+
+                // Update extents
+                MinX = currentExtents.MinX;
+                MaxX = currentExtents.MaxX;
+                MinY = currentExtents.MinY;
+                MaxY = currentExtents.MaxY;
+
+                // Update Counter
+                Count += geometriesIn.Count;
+
                 var vtx = new VertexGroup()
                 {
                     Color = color
@@ -195,9 +218,32 @@ namespace SharpGLShader
                     vtx.Vertices.AddRange(ToDouble(geometriesIn[i] as MarkGeometryPoint));
 
                 _points.Add(vtx);
+                Update();
             }
             else if (geometriesIn.All(x => x is MarkGeometryLine))
             {
+                var currentExtents = GeometryExtents<double>.Combine(
+                    new GeometryExtents<double>()
+                    {
+                        MinX = MinX,
+                        MaxX = MaxX,
+                        MinY = MinY,
+                        MaxY = MaxY
+                    },
+                    GeometricArithmeticModule.CalculateExtents(
+                        geometriesIn
+                    )
+                );
+
+                // Update extents
+                MinX = currentExtents.MinX;
+                MaxX = currentExtents.MaxX;
+                MinY = currentExtents.MinY;
+                MaxY = currentExtents.MaxY;
+
+                // Update Counter
+                Count += geometriesIn.Count;
+
                 var vtx = new VertexGroup()
                 {
                     Color = color
@@ -206,7 +252,8 @@ namespace SharpGLShader
                 for (int i = 0; i < geometriesIn.Count; i++)
                     vtx.Vertices.AddRange(ToDouble(geometriesIn[i] as MarkGeometryLine));
 
-                _points.Add(vtx);
+                _lines.Add(vtx);
+                Update();
             }
             else
             {

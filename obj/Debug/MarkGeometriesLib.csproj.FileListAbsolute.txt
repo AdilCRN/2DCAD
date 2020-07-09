@@ -224,8 +224,6 @@ C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\HardwareClasses\StandaRo
 C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\HardwareClasses\StandaRotaryStepper\libximc.dll
 C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\HardwareClasses\StandaRotaryStepper\ximcnet.dll
 C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\HardwareClasses\StandaRotaryStepper\xiwrapper.dll
-C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\MarkGeometriesLib.exe.config
-C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\MarkGeometriesLib.exe
 C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\MarkGeometriesLib.pdb
 C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\Emgu.CV.UI.dll
 C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\Emgu.CV.World.NetStandard.dll
@@ -387,5 +385,7 @@ C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\zh-Hant\Microsoft.CodeAn
 C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\MarkGeometriesLib.csprojAssemblyReference.cache
 C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\MarkGeometriesLib.csproj.CoreCompileInputs.cache
 C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\MarkGeometriesLib.csproj.CopyComplete
-C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\MarkGeometriesLib.exe
 C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\MarkGeometriesLib.pdb
+C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\MarkGeometriesLib.dll.config
+C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\MarkGeometriesLib.dll
+C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\MarkGeometriesLib.dll

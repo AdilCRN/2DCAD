@@ -7,8 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using MathNet.Numerics.LinearAlgebra;
-using MathNet.Numerics.LinearAlgebra.Double;
-using System.Windows.Media;
 using System.Data;
 using MSolvLib.HardwareClasses.RTC.RTC5;
 
@@ -421,6 +419,24 @@ namespace MSolvLib.MarkGeometry
         }
 
         /// <summary>
+        ///     Simplify a given transformation matrix.
+        /// </summary>
+        /// <param name="transformMatrix">The input transformation matrix</param>
+        /// <returns>A transformation matrix</returns>
+        public static Matrix4x4 SimplifyTransformationMatrix(Matrix4x4 transformMatrix)
+        {
+            var line = new MarkGeometryLine(new MarkGeometryPoint(0,0), new MarkGeometryPoint(100, 100));
+            line.Transform(transformMatrix);
+
+            if (Math.Abs(line.Length) <= 0.0001)
+                return GetTranslationTransformationMatrix(
+                    line.Extents.Centre.X, line.Extents.Centre.Y, line.Extents.Centre.Z
+                );
+
+            return transformMatrix;
+        }
+
+        /// <summary>
         ///     see: https://www.johndcook.com/blog/2018/05/05/svd/
         ///     see: https://youtu.be/PjeOmOz9jSY
         ///     see: https://lucidar.me/en/mathematics/calculating-the-transformation-between-two-set-of-points/
@@ -456,7 +472,7 @@ namespace MSolvLib.MarkGeometry
             }
 
             // return the estimated transform
-            return ToMatrix4x4(outputMatrix * inputMatrix.PseudoInverse());
+            return SimplifyTransformationMatrix(ToMatrix4x4(outputMatrix * inputMatrix.PseudoInverse()));
         }
 
         /// <summary>
