@@ -21,25 +21,43 @@ namespace MSolvLib.MarkGeometry
         public override double Area { get; protected set; } = 0;
         public override double Perimeter { get; protected set; } = 0;
 
+        private MarkGeometryPoint __startPoint = null;
         public MarkGeometryPoint StartPoint
         {
             get
             {
+                if (__startPoint != null)
+                    return __startPoint;
+
                 if (Points.Count <= 0)
                     return null;
 
                 return Points[0];
             }
+
+            protected set
+            {
+                __startPoint = value;
+            }
         }
 
+        private MarkGeometryPoint __endPoint = null;
         public MarkGeometryPoint EndPoint
         {
             get
             {
+                if (__endPoint != null)
+                    return __endPoint;
+
                 if (Points.Count <= 0)
                     return null;
 
                 return Points[Points.Count - 1];
+            }
+
+            protected set
+            {
+                __endPoint = value;
             }
         }
 

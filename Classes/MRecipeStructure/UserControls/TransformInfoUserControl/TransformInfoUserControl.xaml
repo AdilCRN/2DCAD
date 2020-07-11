@@ -1,0 +1,73 @@
+﻿<UserControl x:Class="MRecipeStructure.Classes.MRecipeStructure.UserControls.TransformInfoUserControl.TransformInfoUserControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:MRecipeStructure.Classes.MRecipeStructure.UserControls.TransformInfoUserControl"
+             xmlns:src="clr-namespace:MRecipeStructure.Classes.MRecipeStructure"
+             xmlns:xceed="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:mClasses="clr-namespace:MSolvLib.Classes;assembly=MSolvLib"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    
+    <StackPanel>
+        <StackPanel.Resources>
+            <Style
+                x:Key="BaseControl" TargetType="Control">
+                <Setter Property="Height" Value="30"/>
+            </Style>
+
+            <Style 
+                x:Key="BaseActionButton"
+                TargetType="Button"
+                BasedOn="{StaticResource BaseControl}">
+                <Setter Property="Margin" Value="1 0"/>
+                <Setter Property="Height" Value="30"/>
+            </Style>
+
+            <Style 
+                x:Key="BaseTextBox"
+                TargetType="TextBox"
+                BasedOn="{StaticResource BaseControl}">
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+            </Style>
+
+            <Style 
+                x:Key="BaseDoubleUpDown"
+                TargetType="{x:Type xceed:DoubleUpDown}"
+                BasedOn="{StaticResource BaseControl}">
+                <Setter Property="FontSize" Value="16"/>
+            </Style>
+        </StackPanel.Resources>
+
+        <!--relative offset-->
+        <TextBlock
+            Margin="0 5 0 3"
+            Text="Relative Offset XY (mm)"/>
+
+        <UniformGrid
+            Margin="0 0 0 0">
+            <xceed:DoubleUpDown 
+                Margin="1 0 0.5 0"
+                Style="{StaticResource BaseDoubleUpDown}"
+                Value="{Binding TransformInfoItemSource.OffsetX, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"/>
+
+            <xceed:DoubleUpDown 
+                Margin="0.5 0 1 0"
+                Style="{StaticResource BaseDoubleUpDown}"
+                Value="{Binding TransformInfoItemSource.OffsetY, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"/>
+        </UniformGrid>
+
+        <!--rotational angle-->
+        <TextBlock
+            Margin="0 0 0 0"
+            Text="Relative Angle (deg)"/>
+
+        <xceed:DoubleUpDown 
+            Margin="1 0 1 0"
+            Style="{StaticResource BaseDoubleUpDown}"
+            Value="{Binding TransformInfoItemSource.RotationDegZ, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"/>
+
+    </StackPanel>
+</UserControl>

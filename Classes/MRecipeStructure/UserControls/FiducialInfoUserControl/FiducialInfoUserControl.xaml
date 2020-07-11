@@ -1,0 +1,165 @@
+﻿<UserControl x:Class="MRecipeStructure.Classes.MRecipeStructure.UserControls.FiducialInfoUserControl.FiducialInfoUserControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:System="clr-namespace:System;assembly=mscorlib"
+             xmlns:local="clr-namespace:MRecipeStructure.Classes.MRecipeStructure.UserControls.FiducialInfoUserControl"
+             xmlns:src="clr-namespace:MRecipeStructure.Classes.MRecipeStructure"
+             xmlns:xceed="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:mClasses="clr-namespace:MSolvLib.Classes;assembly=MSolvLib"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid>
+        <Grid.Resources>
+            <Style
+                x:Key="BaseControl" TargetType="Control">
+                <Setter Property="Height" Value="30"/>
+            </Style>
+
+            <Style 
+                x:Key="BaseActionButton"
+                TargetType="Button"
+                BasedOn="{StaticResource BaseControl}">
+                <Setter Property="Margin" Value="1 0"/>
+                <Setter Property="Height" Value="30"/>
+            </Style>
+
+            <Style 
+                x:Key="BaseTextBox"
+                TargetType="TextBox"
+                BasedOn="{StaticResource BaseControl}">
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+            </Style>
+
+            <Style 
+                x:Key="BaseDoubleUpDown"
+                TargetType="{x:Type xceed:DoubleUpDown}"
+                BasedOn="{StaticResource BaseControl}">
+                <Setter Property="FontSize" Value="16"/>
+            </Style>
+        </Grid.Resources>
+        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel
+            Orientation="Horizontal"
+            HorizontalAlignment="Right">
+
+            <StackPanel.Resources>
+                <ObjectDataProvider
+                    x:Key="AlignmentTypeEnum"
+                    MethodName="GetValues"
+                    ObjectType="{x:Type System:Enum}">
+                    <ObjectDataProvider.MethodParameters>
+                        <x:Type TypeName="src:MAlignmentType"/>
+                    </ObjectDataProvider.MethodParameters>
+                </ObjectDataProvider>
+            </StackPanel.Resources>
+
+            <TextBlock
+                Margin="0 0 2.5 0"
+                Text="Type: "
+                VerticalAlignment="Center"/>
+
+            <ComboBox
+                MinWidth="90"
+                Margin="0 0 15 0"
+                VerticalContentAlignment="Center"
+                HorizontalContentAlignment="Center"
+                Style="{StaticResource BaseControl}"
+                ItemsSource="{Binding Source={StaticResource AlignmentTypeEnum}}"
+                SelectedItem="{Binding MRecipeNodeItemSource.AlignmentType, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <Button
+                MinWidth="90"
+                Margin="2.5 0 2.5 0"
+                Content="ADD"
+                Command="{Binding AddCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"/>
+            <Button
+                MinWidth="90"
+                Margin="2.5 0 5 0"
+                Content="DELETE ALL"
+                Command="{Binding DeleteAllCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"/>
+        </StackPanel>
+
+        <DataGrid
+            Grid.Row="1"
+            Margin="0 5"
+            CanUserAddRows="False"
+            CanUserSortColumns="True"
+            AutoGenerateColumns="False"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Auto"
+            ItemsSource="{Binding MRecipeNodeItemSource.Fiducials, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+            
+            <DataGrid.Resources>
+                <mClasses:BindingProxy x:Key="proxy" Data="{Binding}" />
+            </DataGrid.Resources>
+
+            <DataGrid.Columns>
+                <DataGridTemplateColumn
+                    Header="#"
+                    Width="Auto">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock
+                                MinWidth="30"
+                                Padding="7 0"
+                                VerticalAlignment="Center"
+                                Text="{Binding Index, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn
+                    Width="*"
+                    MinWidth="100"
+                    Header="CAD X (mm)">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <xceed:DoubleUpDown
+                                Style="{StaticResource BaseDoubleUpDown}"
+                                Value="{Binding X, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn
+                    Width="*"
+                    MinWidth="100"
+                    Header="CAD Y (mm)">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <xceed:DoubleUpDown
+                                Style="{StaticResource BaseDoubleUpDown}"
+                                Value="{Binding Y, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn
+                    Width="50"
+                    MinWidth="50">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button
+                                Width="40"
+                                Foreground="Red"
+                                Content="{materialDesign:PackIcon Kind=Clear}"
+                                Margin="1"
+                                ToolTip="Delete entry"
+                                CommandParameter="{Binding}"
+                                Style="{StaticResource BaseActionButton}"
+                                Command="{Binding DeleteCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

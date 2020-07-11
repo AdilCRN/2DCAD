@@ -511,6 +511,9 @@ namespace SharpGLShader
             gl.Begin(mode);
             for (int i = 0; i < vertexGroups.Count; i++)
             {
+                if (vertexGroups[i] == null)
+                    continue;
+
                 if (vertexGroups[i].Color != null)
                 {
                     if (vertexGroups[i].Color.Length >= 3)

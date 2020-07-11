@@ -41,16 +41,32 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="CommonServiceLocator, Version=2.0.4.0, Culture=neutral, PublicKeyToken=489b6accfaf20ef0, processorArchitecture=MSIL">
+      <HintPath>..\packages\CommonServiceLocator.2.0.4\lib\net47\CommonServiceLocator.dll</HintPath>
+    </Reference>
     <Reference Include="Emgu.CV.UI, Version=4.2.0.3662, Culture=neutral, PublicKeyToken=7281126722ab4438, processorArchitecture=MSIL">
       <HintPath>..\packages\Emgu.CV.runtime.windows.4.2.0.3662\lib\net461\Emgu.CV.UI.dll</HintPath>
     </Reference>
     <Reference Include="Emgu.CV.World.NetStandard, Version=1.0.0.0, Culture=neutral, PublicKeyToken=7281126722ab4438, processorArchitecture=MSIL">
       <HintPath>..\packages\Emgu.CV.4.2.0.3662\lib\netstandard2.0\Emgu.CV.World.NetStandard.dll</HintPath>
     </Reference>
+    <Reference Include="MaterialDesignColors, Version=1.2.6.1513, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MaterialDesignColors.1.2.6\lib\net45\MaterialDesignColors.dll</HintPath>
+    </Reference>
+    <Reference Include="MaterialDesignThemes.Wpf, Version=3.1.3.1513, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MaterialDesignThemes.3.1.3\lib\net45\MaterialDesignThemes.Wpf.dll</HintPath>
+    </Reference>
     <Reference Include="MathNet.Numerics, Version=4.11.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MathNet.Numerics.4.11.0\lib\net461\MathNet.Numerics.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="Prism, Version=7.2.0.1422, Culture=neutral, PublicKeyToken=40ee6c3a2184dc59, processorArchitecture=MSIL">
+      <HintPath>..\packages\Prism.Core.7.2.0.1422\lib\net45\Prism.dll</HintPath>
+    </Reference>
+    <Reference Include="Prism.Wpf, Version=7.2.0.1422, Culture=neutral, PublicKeyToken=40ee6c3a2184dc59, processorArchitecture=MSIL">
+      <HintPath>..\packages\Prism.Wpf.7.2.0.1422\lib\net45\Prism.Wpf.dll</HintPath>
+    </Reference>
     <Reference Include="SharpGL, Version=2.4.1.2, Culture=neutral, PublicKeyToken=27fc851303210b27, processorArchitecture=MSIL">
       <HintPath>..\packages\SharpGL.2.4.1.2\lib\net40-client\SharpGL.dll</HintPath>
     </Reference>
@@ -61,6 +77,7 @@
       <HintPath>..\packages\SharpGL.WPF.2.4.1.2\lib\net40\SharpGL.WPF.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Drawing.Common, Version=4.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
@@ -71,6 +88,10 @@
     <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
     </Reference>
+    <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Prism.Wpf.7.2.0.1422\lib\net45\System.Windows.Interactivity.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xaml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -78,6 +99,21 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
     <Reference Include="WindowsBase" />
+    <Reference Include="Xceed.Wpf.AvalonDock, Version=4.0.0.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4, processorArchitecture=MSIL">
+      <HintPath>..\packages\Extended.Wpf.Toolkit.4.0.1\lib\net40\Xceed.Wpf.AvalonDock.dll</HintPath>
+    </Reference>
+    <Reference Include="Xceed.Wpf.AvalonDock.Themes.Aero, Version=4.0.0.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4, processorArchitecture=MSIL">
+      <HintPath>..\packages\Extended.Wpf.Toolkit.4.0.1\lib\net40\Xceed.Wpf.AvalonDock.Themes.Aero.dll</HintPath>
+    </Reference>
+    <Reference Include="Xceed.Wpf.AvalonDock.Themes.Metro, Version=4.0.0.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4, processorArchitecture=MSIL">
+      <HintPath>..\packages\Extended.Wpf.Toolkit.4.0.1\lib\net40\Xceed.Wpf.AvalonDock.Themes.Metro.dll</HintPath>
+    </Reference>
+    <Reference Include="Xceed.Wpf.AvalonDock.Themes.VS2010, Version=4.0.0.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4, processorArchitecture=MSIL">
+      <HintPath>..\packages\Extended.Wpf.Toolkit.4.0.1\lib\net40\Xceed.Wpf.AvalonDock.Themes.VS2010.dll</HintPath>
+    </Reference>
+    <Reference Include="Xceed.Wpf.Toolkit, Version=4.0.0.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4, processorArchitecture=MSIL">
+      <HintPath>..\packages\Extended.Wpf.Toolkit.4.0.1\lib\net40\Xceed.Wpf.Toolkit.dll</HintPath>
+    </Reference>
     <Reference Include="ZedGraph, Version=5.1.7.430, Culture=neutral, PublicKeyToken=02a83cbd123fcd60, processorArchitecture=MSIL">
       <HintPath>..\packages\ZedGraph.5.1.7\lib\net35-Client\ZedGraph.dll</HintPath>
     </Reference>
@@ -91,6 +127,7 @@
     <Compile Include="Classes\DRLParser\DRLParser.cs" />
     <Compile Include="Classes\DXFParser\AdvancedLineStreamReader.cs" />
     <Compile Include="Classes\DXFParser\DXFParser.cs" />
+    <Compile Include="Classes\Generics\CachedLoader.cs" />
     <Compile Include="Classes\GeometryToImageConverter.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Geometries\IMarkGeometry.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Geometries\IMarkGeometryWrapper.cs" />
@@ -114,6 +151,40 @@
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\GeometryShader2D.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\MarkGeometriesWrapper.cs" />
     <Compile Include="Classes\MarkGeometries\Interfaces\IMarkGeometryVisualizer2D.cs" />
+    <Compile Include="Classes\MRecipeStructure\Dialogs\PasteAsArrayDialog.xaml.cs">
+      <DependentUpon>PasteAsArrayDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Classes\MRecipeStructure\MAlignmentType.cs" />
+    <Compile Include="Classes\MRecipeStructure\MArrayInfo.cs" />
+    <Compile Include="Classes\MRecipeStructure\MArrayItemData.cs" />
+    <Compile Include="Classes\MRecipeStructure\MArrayStyle.cs" />
+    <Compile Include="Classes\MRecipeStructure\MFiducialInfo.cs" />
+    <Compile Include="Classes\MRecipeStructure\MLinkedNode.cs" />
+    <Compile Include="Classes\MRecipeStructure\MRecipe.cs" />
+    <Compile Include="Classes\MRecipeStructure\MRecipeBaseNode.cs" />
+    <Compile Include="Classes\MRecipeStructure\MRecipeDevice.cs" />
+    <Compile Include="Classes\MRecipeStructure\MRecipeDeviceLayer.cs" />
+    <Compile Include="Classes\MRecipeStructure\MRecipePlate.cs" />
+    <Compile Include="Classes\MRecipeStructure\MTileDescription.cs" />
+    <Compile Include="Classes\MRecipeStructure\MTileSettings.cs" />
+    <Compile Include="Classes\MRecipeStructure\TileStyle.cs" />
+    <Compile Include="Classes\MRecipeStructure\TransformInfo.cs" />
+    <Compile Include="Classes\MRecipeStructure\UserControls\ArrayInfoUserControl\ArrayInfoUserControl.xaml.cs">
+      <DependentUpon>ArrayInfoUserControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Classes\MRecipeStructure\UserControls\FiducialInfoUserControl\FiducialInfoUserControl.xaml.cs">
+      <DependentUpon>FiducialInfoUserControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Classes\MRecipeStructure\UserControls\RecipeLayerUserControl\RecipeLayerUserControl.xaml.cs">
+      <DependentUpon>RecipeLayerUserControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Classes\MRecipeStructure\UserControls\RecipeUserControl\MRecipeUserControl.xaml.cs">
+      <DependentUpon>MRecipeUserControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Classes\MRecipeStructure\UserControls\TransformInfoUserControl\TransformInfoUserControl.xaml.cs">
+      <DependentUpon>TransformInfoUserControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Classes\MRecipeStructure\Utils\UndoRedoHelper.cs" />
     <Compile Include="Classes\PerformanceHelper.cs" />
     <Compile Include="Classes\SharpGLShader\MGLShader.cs" />
     <Compile Include="Classes\SharpGLShader\Utils\MDimens.cs" />
@@ -158,7 +229,32 @@
       <Name>MSolvLib</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Page Include="Classes\MRecipeStructure\Dialogs\PasteAsArrayDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Classes\MRecipeStructure\UserControls\ArrayInfoUserControl\ArrayInfoUserControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Classes\MRecipeStructure\UserControls\FiducialInfoUserControl\FiducialInfoUserControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Classes\MRecipeStructure\UserControls\RecipeLayerUserControl\RecipeLayerUserControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Classes\MRecipeStructure\UserControls\RecipeUserControl\MRecipeUserControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Classes\MRecipeStructure\UserControls\TransformInfoUserControl\TransformInfoUserControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Emgu.CV.runtime.windows.4.2.0.3662\build\Emgu.CV.runtime.windows.targets" Condition="Exists('..\packages\Emgu.CV.runtime.windows.4.2.0.3662\build\Emgu.CV.runtime.windows.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
@@ -166,5 +262,7 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Emgu.CV.runtime.windows.4.2.0.3662\build\Emgu.CV.runtime.windows.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Emgu.CV.runtime.windows.4.2.0.3662\build\Emgu.CV.runtime.windows.targets'))" />
+    <Error Condition="!Exists('..\packages\MaterialDesignThemes.3.1.3\build\MaterialDesignThemes.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MaterialDesignThemes.3.1.3\build\MaterialDesignThemes.targets'))" />
   </Target>
+  <Import Project="..\packages\MaterialDesignThemes.3.1.3\build\MaterialDesignThemes.targets" Condition="Exists('..\packages\MaterialDesignThemes.3.1.3\build\MaterialDesignThemes.targets')" />
 </Project>

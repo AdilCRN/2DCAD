@@ -20,8 +20,6 @@ namespace MSolvLib.MarkGeometry
             }
         }
 
-        public MarkGeometryPoint StartPoint { get; set; } = new MarkGeometryPoint();
-        public MarkGeometryPoint EndPoint { get; set; } = new MarkGeometryPoint();
         public MarkGeometryPoint ControlPoint { get; set; } = new MarkGeometryPoint();
 
         public MarkGeometryQuadraticBezier()

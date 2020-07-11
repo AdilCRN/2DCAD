@@ -1,0 +1,121 @@
+﻿<UserControl x:Class="MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeLayerUserControl.RecipeLayerUserControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeLayerUserControl"
+             xmlns:src="clr-namespace:MRecipeStructure.Classes.MRecipeStructure"
+             xmlns:xceed="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:mClasses="clr-namespace:MSolvLib.Classes;assembly=MSolvLib"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <StackPanel>
+        <StackPanel.Resources>
+            <Style
+                x:Key="BaseControl" TargetType="Control">
+                <Setter Property="Height" Value="30"/>
+            </Style>
+
+            <Style 
+                x:Key="BaseActionButton"
+                TargetType="Button"
+                BasedOn="{StaticResource BaseControl}">
+                <Setter Property="Margin" Value="1 0"/>
+                <Setter Property="Height" Value="30"/>
+            </Style>
+
+            <Style 
+                x:Key="BaseTextBox"
+                TargetType="TextBox"
+                BasedOn="{StaticResource BaseControl}">
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+            </Style>
+
+            <Style 
+                x:Key="BaseDoubleUpDown"
+                TargetType="{x:Type xceed:DoubleUpDown}"
+                BasedOn="{StaticResource BaseControl}">
+                <Setter Property="FontSize" Value="16"/>
+            </Style>
+        </StackPanel.Resources>
+
+        <!--pattern file-->
+        <TextBlock
+            Margin="0 5 0 3"
+            Text="Pattern File"/>
+
+        <Grid >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition MinWidth="40" Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox
+                IsReadOnly="True"
+                Text="{Binding Path=MRecipeDeviceLayerItemSource.PatternFilePath, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
+                <TextBox.Style>
+                    <Style TargetType="TextBox" BasedOn="{StaticResource BaseTextBox}">
+                        <Style.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter Property="Background" Value="Gray"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBox.Style>
+            </TextBox>
+
+            <Button
+                Grid.Column="1"
+                Cursor="Hand"
+                Command="{Binding SelectPatternFileCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                Content="{materialDesign:PackIcon Kind=FileOutline}"/>
+        </Grid>
+
+        <!--process mode-->
+        <TextBlock
+            Margin="0 10 0 3"
+            Text="Process Configuration"/>
+
+        <ComboBox
+            DisplayMemberPath="Name.Value"
+            VerticalContentAlignment="Center"
+            Style="{StaticResource BaseControl}"
+            SelectedItem="{Binding SelectedProcessConfiguration, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+            ItemsSource="{Binding AvailableProcessConfigurationsItemSource, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"/>
+
+
+        <!--marking parameters-->
+        <TextBlock
+            Margin="0 10 0 3"
+            Text="Marking Parameters"/>
+
+        <Grid >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition MinWidth="40" Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox
+                IsReadOnly="True"
+                Text="{Binding Path=MRecipeDeviceLayerItemSource.ProcessParametersFilePath, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
+                <TextBox.Style>
+                    <Style TargetType="TextBox" BasedOn="{StaticResource BaseTextBox}">
+                        <Style.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter Property="Background" Value="Gray"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBox.Style>
+            </TextBox>
+
+            <Button
+                Grid.Column="1"
+                Cursor="Hand"
+                Command="{Binding SelectParametersFileCommand, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                Content="{materialDesign:PackIcon Kind=FileOutline}"/>
+        </Grid>
+
+    </StackPanel>
+</UserControl>
