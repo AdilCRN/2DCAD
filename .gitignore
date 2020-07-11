@@ -4,8 +4,8 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # ignore bin
-/bin/*
-/bin/
+bin/*
+bin/
 
 # ignore packages
 /packages
