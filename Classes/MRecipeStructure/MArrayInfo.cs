@@ -100,6 +100,7 @@ namespace MRecipeStructure.Classes.MRecipeStructure
 		{
 			NumX = 1; NumY = 1; NumZ = 1;
 			PitchX = 0; PitchY = 0; PitchZ = 0;
+			ArrayStyle = MArrayStyle.SERPENTILE_W2E;
 		}
 
 		/// <summary>
@@ -115,6 +116,8 @@ namespace MRecipeStructure.Classes.MRecipeStructure
 			PitchX = info.PitchX;
 			PitchY = info.PitchY;
 			PitchZ = info.PitchZ;
+
+			ArrayStyle = info.ArrayStyle;
 		}
 
 		/// <summary>

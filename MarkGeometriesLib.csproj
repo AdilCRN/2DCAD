@@ -50,6 +50,12 @@
     <Reference Include="Emgu.CV.World.NetStandard, Version=1.0.0.0, Culture=neutral, PublicKeyToken=7281126722ab4438, processorArchitecture=MSIL">
       <HintPath>..\packages\Emgu.CV.4.2.0.3662\lib\netstandard2.0\Emgu.CV.World.NetStandard.dll</HintPath>
     </Reference>
+    <Reference Include="HelixToolkit, Version=2.12.0.0, Culture=neutral, PublicKeyToken=52aa3500039caf0d, processorArchitecture=MSIL">
+      <HintPath>..\packages\HelixToolkit.2.12.0\lib\netstandard1.1\HelixToolkit.dll</HintPath>
+    </Reference>
+    <Reference Include="HelixToolkit.Wpf, Version=2.12.0.0, Culture=neutral, PublicKeyToken=52aa3500039caf0d, processorArchitecture=MSIL">
+      <HintPath>..\packages\HelixToolkit.Wpf.2.12.0\lib\net45\HelixToolkit.Wpf.dll</HintPath>
+    </Reference>
     <Reference Include="MaterialDesignColors, Version=1.2.6.1513, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MaterialDesignColors.1.2.6\lib\net45\MaterialDesignColors.dll</HintPath>
     </Reference>
@@ -58,6 +64,9 @@
     </Reference>
     <Reference Include="MathNet.Numerics, Version=4.11.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MathNet.Numerics.4.11.0\lib\net461\MathNet.Numerics.dll</HintPath>
+    </Reference>
+    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\packages\NLog.4.6.7\lib\net45\NLog.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -83,8 +92,11 @@
     <Reference Include="System.Drawing.Common, Version=4.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Drawing.Common.4.7.0\lib\net461\System.Drawing.Common.dll</HintPath>
     </Reference>
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Transactions" />
     <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
     </Reference>
@@ -127,7 +139,10 @@
     <Compile Include="Classes\DRLParser\DRLParser.cs" />
     <Compile Include="Classes\DXFParser\AdvancedLineStreamReader.cs" />
     <Compile Include="Classes\DXFParser\DXFParser.cs" />
+    <Compile Include="Classes\Generics\AlignmentCalculationWrapper.cs" />
     <Compile Include="Classes\Generics\CachedLoader.cs" />
+    <Compile Include="Classes\Generics\MAlignmentCalculator.cs" />
+    <Compile Include="Classes\Generics\TerminableTaskExecutor.cs" />
     <Compile Include="Classes\GeometryToImageConverter.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Geometries\IMarkGeometry.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Geometries\IMarkGeometryWrapper.cs" />
@@ -151,8 +166,26 @@
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\GeometryShader2D.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\MarkGeometriesWrapper.cs" />
     <Compile Include="Classes\MarkGeometries\Interfaces\IMarkGeometryVisualizer2D.cs" />
+    <Compile Include="Classes\MRecipeStructure\Dialogs\DialogViewModel\ImportPatternDialogViewModel.cs" />
+    <Compile Include="Classes\MRecipeStructure\Dialogs\DialogViewModel\ImportSTLDialogViewModel.cs" />
+    <Compile Include="Classes\MRecipeStructure\Dialogs\DialogViewModel\RunRecipeDialogViewModel.cs" />
+    <Compile Include="Classes\MRecipeStructure\Dialogs\ImportPatternDialog.xaml.cs">
+      <DependentUpon>ImportPatternDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Classes\MRecipeStructure\Dialogs\ImportSTLDialog.xaml.cs">
+      <DependentUpon>ImportSTLDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Classes\MRecipeStructure\Dialogs\PasteAsArrayDialog.xaml.cs">
       <DependentUpon>PasteAsArrayDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Classes\MRecipeStructure\Dialogs\ProcessRecipeUtils\EntityState.cs" />
+    <Compile Include="Classes\MRecipeStructure\Dialogs\ProcessRecipeUtils\FiducialFinder.cs" />
+    <Compile Include="Classes\MRecipeStructure\Dialogs\ProcessRecipeUtils\IMarkParametersComplete.cs" />
+    <Compile Include="Classes\MRecipeStructure\Dialogs\ProcessRecipeUtils\IProcessConfigurationTasksHandler.cs" />
+    <Compile Include="Classes\MRecipeStructure\Dialogs\ProcessRecipeUtils\RecipeProcessEntityInfo.cs" />
+    <Compile Include="Classes\MRecipeStructure\Dialogs\ProcessRecipeUtils\RunRecipeDialogModel.cs" />
+    <Compile Include="Classes\MRecipeStructure\Dialogs\RunRecipeDialog.xaml.cs">
+      <DependentUpon>RunRecipeDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="Classes\MRecipeStructure\MAlignmentType.cs" />
     <Compile Include="Classes\MRecipeStructure\MArrayInfo.cs" />
@@ -184,6 +217,11 @@
     <Compile Include="Classes\MRecipeStructure\UserControls\TransformInfoUserControl\TransformInfoUserControl.xaml.cs">
       <DependentUpon>TransformInfoUserControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Classes\MRecipeStructure\Utils\HatchStyle.cs" />
+    <Compile Include="Classes\MRecipeStructure\Utils\MHatchSettings.cs" />
+    <Compile Include="Classes\MRecipeStructure\Utils\MSTLSlice.cs" />
+    <Compile Include="Classes\MRecipeStructure\Utils\MVertexViewModel.cs" />
+    <Compile Include="Classes\MRecipeStructure\Utils\RecipeNodeShader.cs" />
     <Compile Include="Classes\MRecipeStructure\Utils\UndoRedoHelper.cs" />
     <Compile Include="Classes\PerformanceHelper.cs" />
     <Compile Include="Classes\SharpGLShader\MGLShader.cs" />
@@ -230,7 +268,19 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Page Include="Classes\MRecipeStructure\Dialogs\ImportPatternDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Classes\MRecipeStructure\Dialogs\ImportSTLDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Classes\MRecipeStructure\Dialogs\PasteAsArrayDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Classes\MRecipeStructure\Dialogs\RunRecipeDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

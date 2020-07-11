@@ -435,3 +435,13 @@ C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\Classes\MRecipeStructure
 C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\MarkGeometriesLib.g.resources
 C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\MarkGeometriesLib.csproj.CoreCompileInputs.cache
 C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\MarkGeometriesLib.csproj.CopyComplete
+C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\HelixToolkit.dll
+C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\HelixToolkit.Wpf.dll
+C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\HelixToolkit.xml
+C:\Software\iscsolution.new\MarkGeometriesLib\bin\Debug\HelixToolkit.Wpf.xml
+C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\Classes\MRecipeStructure\Dialogs\ImportPatternDialog.g.cs
+C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\Classes\MRecipeStructure\Dialogs\ImportSTLDialog.g.cs
+C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\Classes\MRecipeStructure\Dialogs\RunRecipeDialog.g.cs
+C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\Classes\MRecipeStructure\Dialogs\ImportPatternDialog.baml
+C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\Classes\MRecipeStructure\Dialogs\ImportSTLDialog.baml
+C:\Software\iscsolution.new\MarkGeometriesLib\obj\Debug\Classes\MRecipeStructure\Dialogs\RunRecipeDialog.baml
