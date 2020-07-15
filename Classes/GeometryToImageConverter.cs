@@ -9,8 +9,6 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
-using Xceed.Wpf.AvalonDock.Controls;
 
 namespace GenericTestProject
 {
