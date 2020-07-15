@@ -18,28 +18,34 @@ namespace MarkGeometriesLib
     {
         static void Main(string[] args)
         {
-            var result1 = GeometryToImageConverter.To1BppImageComplexRetainBounds(
-                @"C:\Users\Chibuike.Okpaluba\Downloads\Test.dxf",
+            GeometryToImageConverter.RotateImage4Bpp(
                 @"C:\Users\Chibuike.Okpaluba\Downloads\Test.bmp",
-                null,
-                320, 320
+                @"C:\Users\Chibuike.Okpaluba\Downloads\Test.out.bmp",
+                10
             );
 
-            var result2 = GeometryToImageConverter.To1BppImageComplexRetainBounds(
-                @"C:\Users\Chibuike.Okpaluba\Downloads\Test.dxf",
-                @"C:\Users\Chibuike.Okpaluba\Downloads\Test30.bmp",
-                null,
-                320, 320,
-                angle: 0
-            );
+            //var result1 = GeometryToImageConverter.To1BppImageComplexRetainBounds(
+            //    @"C:\Users\Chibuike.Okpaluba\Downloads\Test.dxf",
+            //    @"C:\Users\Chibuike.Okpaluba\Downloads\Test.bmp",
+            //    null,
+            //    320, 320
+            //);
 
-            var result3 = GeometryToImageConverter.To1BppImageComplexRetainBounds(
-                @"C:\Users\Chibuike.Okpaluba\Downloads\Test.dxf",
-                @"C:\Users\Chibuike.Okpaluba\Downloads\Test30b.bmp",
-                null,
-                320, 160,
-                angle: 0
-            );
+            //var result2 = GeometryToImageConverter.To1BppImageComplexRetainBounds(
+            //    @"C:\Users\Chibuike.Okpaluba\Downloads\Test.dxf",
+            //    @"C:\Users\Chibuike.Okpaluba\Downloads\Test30.bmp",
+            //    null,
+            //    320, 320,
+            //    angle: 0
+            //);
+
+            //var result3 = GeometryToImageConverter.To1BppImageComplexRetainBounds(
+            //    @"C:\Users\Chibuike.Okpaluba\Downloads\Test.dxf",
+            //    @"C:\Users\Chibuike.Okpaluba\Downloads\Test30b.bmp",
+            //    null,
+            //    320, 160,
+            //    angle: 0
+            //);
 
             //Console.WriteLine("Done.");
             //Console.ReadLine();

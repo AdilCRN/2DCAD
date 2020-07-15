@@ -7,7 +7,10 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using Xceed.Wpf.AvalonDock.Controls;
 
 namespace GenericTestProject
 {
@@ -120,6 +123,195 @@ namespace GenericTestProject
 
             bitmapIn.UnlockBits(bmpImageData);
         }
+
+        private static Bitmap Rotate4Bpp(Bitmap bitmapIn, double angleDeg, byte bgColor = 8)
+        {
+            if (bitmapIn.PixelFormat != PixelFormat.Format4bppIndexed)
+                return null;
+
+            var rect = new MarkGeometryRectangle(bitmapIn.Width, bitmapIn.Height);
+            GeometricArithmeticModule.Rotate(rect, 0, 0, GeometricArithmeticModule.ToRadians(angleDeg));
+            var bitmapOut = new Bitmap((int)Math.Ceiling(rect.Extents.Width), (int)Math.Ceiling(rect.Extents.Height), PixelFormat.Format4bppIndexed);
+
+            var bmpInImageData = bitmapIn.LockBits(new Rectangle(0, 0, bitmapIn.Width, bitmapIn.Height), ImageLockMode.ReadOnly, bitmapIn.PixelFormat);
+            long bmpInStride = bmpInImageData.Stride;
+
+            var bmpOutImageData = bitmapOut.LockBits(new Rectangle(0, 0, bitmapOut.Width, bitmapOut.Height), ImageLockMode.ReadWrite, bitmapIn.PixelFormat);
+            long bmpOutStride = bmpOutImageData.Stride;
+
+            long bmpInWidth = bitmapIn.Width;
+            long bmpInHeight = bitmapIn.Height;
+            long bmpOutHeight = bitmapOut.Height;
+            long bmpOutHalfWidth = bitmapOut.Width / 2;
+
+            long _col, _row, outIndex, inIndex;
+            double cxIn = 0.5 * bmpInImageData.Width;
+            double cyIn = 0.5 * bmpInImageData.Height;
+            double cxOut = 0.5 * bmpOutImageData.Width;
+            double cyOut = 0.5 * bmpOutImageData.Height;
+            double sa = Math.Sin(GeometricArithmeticModule.ToRadians(-angleDeg));
+            double ca = Math.Cos(GeometricArithmeticModule.ToRadians(-angleDeg));
+
+            // mirror 4bpp bg-color accross both halves of the byte;
+            bgColor = Math.Min(bgColor, (byte)0x0F);
+            bgColor = (byte)((bgColor | 0xF0) & ((bgColor << 4) | 0x0F));
+
+            unsafe
+            {
+                byte* bmpInPtr = (byte*)bmpInImageData.Scan0.ToPointer();
+                byte* bmpOutPtr = (byte*)bmpOutImageData.Scan0.ToPointer();
+
+                #region Section: Linear Version
+
+                for (int row = 0; row < bmpOutHeight; row++)
+                {
+                    for (int col = 0; col < bmpOutHalfWidth; col++)
+                    {
+                        // pixel a
+                        _col = (long)(((((col * 2) - cxOut) * ca) - ((row - cyOut) * sa)) + cxIn);
+                        _row = (long)((((row - cyOut) * ca) + (((col * 2) - cxOut) * sa)) + cyIn);
+                        outIndex = (row * bmpOutStride) + col;
+                        inIndex = (_row * bmpInStride) + (_col / 2);
+
+                        // check row and column is within in image
+                        if (
+                            _col < 0 ||
+                            _col >= bmpInWidth ||
+                            _row < 0 ||
+                            _row >= bmpInHeight
+                        )
+                        {
+                            bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0xF0) & (0x0F | bgColor));
+                        }
+                        else if (_col % 2 == 0)
+                        {
+                            // read the high byte
+                            bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0xF0) & (0x0F | bmpInPtr[inIndex]));
+                        }
+                        else
+                        {
+                            // read the low byte
+                            bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0xF0) & (0x0F | (bmpInPtr[inIndex] << 4)));
+                        }
+
+                        // pixel b
+                        _col = (long)((((((col * 2) + 1) - cxOut) * ca) - ((row - cyOut) * sa)) + cxIn);
+                        _row = (long)((((row - cyOut) * ca) + ((((col * 2) + 1) - cxOut) * sa)) + cyIn);
+                        inIndex = (_row * bmpInStride) + (_col / 2);
+
+                        if (
+                            _col < 0 ||
+                            _col >= bmpInWidth ||
+                            _row < 0 ||
+                            _row >= bmpInHeight
+                        )
+                        {
+                            bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0x0F) & (0xF0 | bgColor));
+                        }
+                        else if (_col % 2 == 0)
+                        {
+                            // read the high byte
+                            bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0x0F) & (0xF0 | (bmpInPtr[inIndex] >> 4)));
+                        }
+                        else
+                        {
+                            // read the low byte
+                            bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0x0F) & (0xF0 | bmpInPtr[inIndex]));
+                        }
+                    }
+                }
+
+                #endregion
+
+                #region Section: Parallel Version
+
+                //Parallel.For(0, bmpOutHeight, (row) =>
+                //        {
+                //            Parallel.For(0, bmpOutHalfWidth, (col) =>
+                //            {
+                //                byte* bmpInPtr = (byte*)bmpInImageData.Scan0.ToPointer();
+                //                byte* bmpOutPtr = (byte*)bmpOutImageData.Scan0.ToPointer();
+                //        // pixel a
+                //        _col = (long)(((((col * 2) - cxOut) * ca) - ((row - cyOut) * sa)) + cxIn);
+                //                _row = (long)((((row - cyOut) * ca) + (((col * 2) - cxOut) * sa)) + cyIn);
+                //                outIndex = (row * bmpOutStride) + col;
+                //                inIndex = (_row * bmpInStride) + (_col / 2);
+
+                //        // check row and column is within in image
+                //        if (
+                //                    _col < 0 ||
+                //                    _col >= bmpInWidth ||
+                //                    _row < 0 ||
+                //                    _row >= bmpInHeight
+                //                )
+                //                {
+                //                    bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0xF0) & (0x0F | bgColor));
+                //                }
+                //                else if (_col % 2 == 0)
+                //                {
+                //            // read the high byte
+                //            bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0xF0) & (0x0F | bmpInPtr[inIndex]));
+                //                }
+                //                else
+                //                {
+                //            // read the low byte
+                //            bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0xF0) & (0x0F | (bmpInPtr[inIndex] << 4)));
+                //                }
+
+                //        // pixel b
+                //        _col = (long)((((((col * 2) + 1) - cxOut) * ca) - ((row - cyOut) * sa)) + cxIn);
+                //                _row = (long)((((row - cyOut) * ca) + ((((col * 2) + 1) - cxOut) * sa)) + cyIn);
+                //                inIndex = (_row * bmpInStride) + (_col / 2);
+
+                //                if (
+                //                    _col < 0 ||
+                //                    _col >= bmpInWidth ||
+                //                    _row < 0 ||
+                //                    _row >= bmpInHeight
+                //                )
+                //                {
+                //                    bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0x0F) & (0xF0 | bgColor));
+                //                }
+                //                else if (_col % 2 == 0)
+                //                {
+                //            // read the high byte
+                //            bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0x0F) & (0xF0 | (bmpInPtr[inIndex] >> 4)));
+                //                }
+                //                else
+                //                {
+                //            // read the low byte
+                //            bmpOutPtr[outIndex] = (byte)((bmpOutPtr[outIndex] | 0x0F) & (0xF0 | bmpInPtr[inIndex]));
+                //                }
+                //            });
+                //        }); 
+
+                #endregion
+            } 
+
+
+            bitmapIn.UnlockBits(bmpInImageData);
+            bitmapOut.UnlockBits(bmpOutImageData);
+            bitmapOut.SetResolution(bitmapIn.HorizontalResolution, bitmapIn.VerticalResolution);
+
+            return bitmapOut;
+        }
+
+        //private static long GetRotatedIndex(int rowIn, int columnIn, double imgHalfWidth, double imgHalfHeight, double ca, double sa, int imgStrideOut)
+        //{
+        //    // translate to origin
+        //    double px = columnIn - imgHalfWidth;
+        //    double py = rowIn - imgHalfHeight;
+
+        //    // rotate
+        //    var _x = (px * ca) - (py * sa);
+        //    var _y = (py * ca) + (px * sa);
+
+        //    // translate back to centre
+        //    px = _x + imgHalfWidth;
+        //    py = _y + imgHalfHeight;
+
+        //    return (py * imgStrideOut) + px;
+        //}
 
         private static byte compress(int c1, int c2)
         {
@@ -253,17 +445,33 @@ namespace GenericTestProject
             }
         }
 
-        public static Bitmap RotateImage(string imagePathIn, double angle, PixelFormat pixelFormat = PixelFormat.Format1bppIndexed, GIColor bgColor = GIColor.White)
+        public static Bitmap RotateImage4Bpp(string imagePathIn, double angle, GIColor bgColor = GIColor.White, bool crop = false)
         {
             var __bgColor = new Gray(bgColor == GIColor.Black ? 0 : 255);
 
-            var image = CvInvoke.Imread(imagePathIn, ImreadModes.AnyColor).ToImage<Gray, Byte>().Rotate(angle, __bgColor, false);
-            var bitmap = new Bitmap(image.Width, image.Height, pixelFormat);
+            var image = CvInvoke.Imread(imagePathIn, ImreadModes.ReducedGrayscale4).ToImage<Gray, Byte>().Rotate(angle, __bgColor, crop);
+            var bitmap = new Bitmap(image.Width, image.Height, PixelFormat.Format4bppIndexed);
 
             FastCopy(image, bitmap);
 
             return bitmap;
         }
+
+        public static (bool Success, int Width, int Height) RotateImage4Bpp(string imagePathIn, string imagePathOut, double angle, double dpiX = 720, double dpiY = 720, GIColor bgColor = GIColor.White, bool crop = false)
+        {
+            var bmp = RotateImage4Bpp(imagePathIn, angle, bgColor, crop);
+            SaveAsBitmap(imagePathOut, bmp, dpiX, dpiY, OptimisationSetting.HighestQuality);
+            return (File.Exists(imagePathOut), bmp.Width, bmp.Height);
+        }
+
+        public static (bool Success, int Width, int Height) RotateImage4BppV2(string imagePathIn, string imagePathOut, double angle)
+        {
+            var bmpIn = new Bitmap(imagePathIn);
+            var bmpOut = Rotate4Bpp(bmpIn, angle);
+            SaveAsBitmap(imagePathOut, bmpOut, bmpOut.HorizontalResolution, bmpOut.VerticalResolution, OptimisationSetting.HighestQuality);
+            return (File.Exists(imagePathOut), bmpOut.Width, bmpOut.Height);
+        }
+
         #endregion
 
         /// <summary>

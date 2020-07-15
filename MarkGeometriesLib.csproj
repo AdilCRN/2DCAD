@@ -138,6 +138,7 @@
     <Compile Include="Classes\DRLParser\DecimalPointNotationStyle.cs" />
     <Compile Include="Classes\DRLParser\DRLParser.cs" />
     <Compile Include="Classes\DXFParser\AdvancedLineStreamReader.cs" />
+    <None Include="Classes\DRLParser\Documentation\Excellon.md" />
     <Compile Include="Classes\DXFParser\DXFParser.cs" />
     <Compile Include="Classes\Generics\AlignmentCalculationWrapper.cs" />
     <Compile Include="Classes\Generics\CachedLoader.cs" />
@@ -252,6 +253,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="Classes\DXFParser\Documentation\autocad_2012_pdf_dxf-reference_enu.pdf" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

@@ -32,6 +32,14 @@ namespace MarkGeometriesLib.Classes.DRLParser
         private static readonly Regex MatchVersionCommand = new Regex(@"^\s*VER,\s*(\d+)", RegexOptions.Compiled | RegexOptions.Singleline);
         private static readonly Regex MatchFormatCommand = new Regex(@"^\s*FMAT,\s*(\d+)", RegexOptions.Compiled | RegexOptions.Singleline);
         private static readonly Regex MatchToolCommand = new Regex(@"^\s*(T\d+)C((\d+(\.\d+)?)|(\.\d+))", RegexOptions.Compiled | RegexOptions.Singleline);
+        private static readonly Regex MatchTurnOnRoutingModeCommand = new Regex(@"^\s*(G00)", RegexOptions.Compiled | RegexOptions.Singleline);
+        private static readonly Regex MatchTurnOnDrillModeCommand = new Regex(@"^\s*(G81|G05)", RegexOptions.Compiled | RegexOptions.Singleline);
+        private static readonly Regex MatchBeginPatternCommand = new Regex(@"^\s*(M25)", RegexOptions.Compiled | RegexOptions.Singleline);
+        private static readonly Regex MatchEndPatternCommand = new Regex(@"^\s*(M01)", RegexOptions.Compiled | RegexOptions.Singleline);
+        private static readonly Regex MatchRepeatPatternOffsetV1Command = new Regex(@"^\s*(M26)", RegexOptions.Compiled | RegexOptions.Singleline);
+        private static readonly Regex MatchRepeatPatternOffsetV2Command = new Regex(@"^\s*(M02)", RegexOptions.Compiled | RegexOptions.Singleline);
+        private static readonly Regex MatchEndOfStepAndRepeatCommand = new Regex(@"^\s*(M08)", RegexOptions.Compiled | RegexOptions.Singleline);
+        //private static readonly Regex MatchVersionCommand = new Regex(@"", RegexOptions.Compiled | RegexOptions.Singleline);
         //private static readonly Regex MatchVersionCommand = new Regex(@"", RegexOptions.Compiled | RegexOptions.Singleline);
 
         #endregion
@@ -157,16 +165,14 @@ namespace MarkGeometriesLib.Classes.DRLParser
 
                     if (successful)
                     {
-                        var value = MatchValueCommand.Matches(line)[0].Groups[2].Value;
-                        int decimalPosition = value.IndexOf('.');
+                        var value = MatchValueCommand.Matches(line)[0].Groups[2].Value.Trim('-');
 
-                        if (decimalPosition < 0)
-                            decimalPosition = value.Length / 2;
-
-                        if (value[0] == '-')
-                            decimalPosition -= 1;
-
-                        SetUnitConversionScale(1d / Math.Pow(10, decimalPosition));
+                        if (CoordinateSystem == CoordinateSystem.INCH)
+                            SetUnitConversionScale(1d / 10000d);
+                        else if (value.Length <= 5)
+                            SetUnitConversionScale(1d / 100);
+                        else
+                            SetUnitConversionScale(1d / 1000);
                     }
 
                     break;
@@ -198,7 +204,14 @@ namespace MarkGeometriesLib.Classes.DRLParser
             BeginGetAll(
                 (data) => 
                 {
-                    buffer.Add(new MarkGeometryPoint(data.X, data.Y));
+                    if (data.Geometry is MarkGeometryPoint point)
+                    {
+                        buffer.Add(point);
+                    }
+                    else
+                    {
+                        buffer.Add(data.Geometry);
+                    }
                 }, 
                 howmany
             );
@@ -218,7 +231,14 @@ namespace MarkGeometriesLib.Classes.DRLParser
             BeginGetAll(
                 (data) =>
                 {
-                    buffer.Add(new MarkGeometryCircle(new MarkGeometryPoint(data.X, data.Y), 0.5 * data.ToolDiameter));
+                    if (data.Geometry is MarkGeometryPoint point)
+                    {
+                        buffer.Add(new MarkGeometryCircle(point, 0.5 * data.ToolDiameter));
+                    }
+                    else
+                    {
+                        buffer.Add(data.Geometry);
+                    }
                 },
                 howmany
             );
@@ -239,13 +259,21 @@ namespace MarkGeometriesLib.Classes.DRLParser
             BeginGetAll(
                 (data) =>
                 {
-                    for (int i = 0; i < pattern.Count; i++)
-                        buffer.Add(
-                            GeometricArithmeticModule.Translate(
-                                (IMarkGeometry)pattern[i].Clone(), 
-                                data.X, data.Y
-                            )
-                        );
+                    if (data.Geometry is MarkGeometryPoint point)
+                    {
+                        var transform = GeometricArithmeticModule.GetTranslationTransformationMatrix(point);
+
+                        for (int i = 0; i < pattern.Count; i++)
+                        {
+                            var clone = (IMarkGeometry)pattern[i].Clone();
+                            clone.Transform(transform);
+                            buffer.Add(clone);
+                        }
+                    }
+                    else
+                    {
+                        buffer.Add(data.Geometry);
+                    }
                 },
                 howmany
             );
@@ -253,20 +281,78 @@ namespace MarkGeometriesLib.Classes.DRLParser
             return buffer;
         }
 
+        #region Section: Obsolete
+
+        ///// <summary>
+        /////     Use method to get DRL positions.
+        ///// </summary>
+        ///// <param name="callback">Action to recieve to positions</param>
+        ///// <param name="howmany">The number of elements to fetch</param>
+        //public void BeginGetAll(Action<(double X, double Y, string toolName, double ToolDiameter)> callback, long howmany = -1)
+        //{
+        //    _count = 0;
+        //    using (var reader = new AdvancedLineStreamReader(_filePath))
+        //    {
+        //        double x = 0;
+        //        double y = 0;
+        //        string toolName = "0";
+        //        double toolDiameter = 0.1;
+
+        //        while ((howmany < 0 || (_count < howmany)) && !reader.EndOfStream)
+        //        {
+        //            var line = reader.ReadLine()?.Trim();
+
+        //            if (MatchDrillCommand.IsMatch(line))
+        //            {
+        //                if (MatchXValue.IsMatch(line))
+        //                {
+        //                    x = ParseValue(MatchXValue.Matches(line)[0].Groups[1].Value);
+        //                }
+
+        //                if (MatchYValue.IsMatch(line))
+        //                {
+        //                    y = ParseValue(MatchYValue.Matches(line)[0].Groups[1].Value);
+        //                }
+
+        //                callback((x, y, toolName, toolDiameter));
+        //            }
+        //            else if (MatchToolSelectCommand.IsMatch(line))
+        //            {
+        //                var _toolName = MatchToolSelectCommand.Matches(line)[0].Groups[1].Value;
+        //                if (Tools.ContainsKey(_toolName))
+        //                {
+        //                    toolName = _toolName;
+        //                    toolDiameter = Tools[toolName];
+        //                }
+        //            }
+
+        //            _count++;
+        //        }
+        //    }
+        //} 
+
+        #endregion
+
         /// <summary>
         ///     Use method to get DRL positions.
+        ///     adapted from https://gist.github.com/katyo/5692b935abc085b1037e
         /// </summary>
         /// <param name="callback">Action to recieve to positions</param>
         /// <param name="howmany">The number of elements to fetch</param>
-        public void BeginGetAll(Action<(double X, double Y, string toolName, double ToolDiameter)> callback, long howmany = -1)
+        public void BeginGetAll(Action<(IMarkGeometry Geometry, string ToolName, double ToolDiameter)> callback, long howmany = -1)
         {
             _count = 0;
             using (var reader = new AdvancedLineStreamReader(_filePath))
             {
                 double x = 0;
                 double y = 0;
+                double xOffset = 0;
+                double yOffset = 0;
                 string toolName = "0";
                 double toolDiameter = 0.1;
+                bool inRoutingMode = false;
+                bool isTrackingPattern = false;
+                var buffer = new List<(IMarkGeometry Geometry, string ToolName, double ToolDiameter)>();
 
                 while ((howmany < 0 || (_count < howmany)) && !reader.EndOfStream)
                 {
@@ -284,7 +370,18 @@ namespace MarkGeometriesLib.Classes.DRLParser
                             y = ParseValue(MatchYValue.Matches(line)[0].Groups[1].Value);
                         }
 
-                        callback((x, y, toolName, toolDiameter));
+                        if (inRoutingMode)
+                        {
+
+                        }
+                        else
+                        {
+                            var pattern = (new MarkGeometryPoint(x, y), toolName, toolDiameter);
+                            callback(pattern);
+
+                            if (isTrackingPattern)
+                                buffer.Add(pattern);
+                        }
                     }
                     else if (MatchToolSelectCommand.IsMatch(line))
                     {
@@ -294,6 +391,84 @@ namespace MarkGeometriesLib.Classes.DRLParser
                             toolName = _toolName;
                             toolDiameter = Tools[toolName];
                         }
+                    }
+                    else if (MatchTurnOnRoutingModeCommand.IsMatch(line))
+                    {
+                        inRoutingMode = true;
+
+                        if (MatchXValue.IsMatch(line))
+                        {
+                            x = ParseValue(MatchXValue.Matches(line)[0].Groups[1].Value);
+                        }
+
+                        if (MatchYValue.IsMatch(line))
+                        {
+                            y = ParseValue(MatchYValue.Matches(line)[0].Groups[1].Value);
+                        }
+
+                        continue;
+                    }
+                    else if (MatchTurnOnDrillModeCommand.IsMatch(line))
+                    {
+                        inRoutingMode = false;
+                        continue;
+                    }
+                    else if (MatchBeginPatternCommand.IsMatch(line))
+                    {
+                        xOffset = 0;
+                        yOffset = 0;
+                        buffer.Clear();
+                        isTrackingPattern = true;
+
+                        continue;
+                    }
+                    else if (MatchEndPatternCommand.IsMatch(line))
+                    {
+                        isTrackingPattern = false;
+                        continue;
+                    }
+                    else if (MatchRepeatPatternOffsetV2Command.IsMatch(line))
+                    {
+                        bool containsOffsetsData = false;
+
+                        if (MatchXValue.IsMatch(line))
+                        {
+                            containsOffsetsData = true;
+                            xOffset += ParseValue(MatchXValue.Matches(line)[0].Groups[1].Value);
+                        }
+
+                        if (MatchYValue.IsMatch(line))
+                        {
+                            containsOffsetsData = true;
+                            yOffset += ParseValue(MatchYValue.Matches(line)[0].Groups[1].Value);
+                        }
+
+                        if (containsOffsetsData)
+                        {
+                            var offsetTransform = GeometricArithmeticModule.GetTranslationTransformationMatrix(
+                                xOffset, yOffset
+                            );
+
+                            for (int i = 0; i < buffer.Count; i++)
+                            {
+                                (IMarkGeometry Geometry, string ToolName, double ToolDiameter) pattern = ((IMarkGeometry)buffer[i].Geometry.Clone(), buffer[i].ToolName, buffer[i].ToolDiameter);
+                                
+                                pattern.Geometry.Transform(offsetTransform);
+
+                                callback(pattern);
+
+                                if (isTrackingPattern)
+                                    buffer.Add(pattern);
+                            }
+                        }
+                        continue;
+                    }
+                    else if (MatchEndOfStepAndRepeatCommand.IsMatch(line))
+                    {
+                        xOffset = 0;
+                        yOffset = 0;
+                        buffer.Clear();
+                        continue;
                     }
 
                     _count++;
