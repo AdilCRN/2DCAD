@@ -133,6 +133,22 @@ namespace MarkGeometriesLib.Classes.Generics
         /// Calculates the target (as per CAD) on the stage centred about the
         /// optical axis.
         /// </summary>
+        /// <param name="stageOriginIn">The stage origin from a previous calculated result</param>
+        /// <param name="targetOnCADIn">The target position as per CAD</param>
+        /// <param name="stageAngleIn">The angle from a previously calculated result</param>
+        /// <returns>The actual stage coordinate</returns>
+        public static MVertex GetTargetPositionOnStage(MVertex invertsIn, MarkGeometryPoint targetOnCADIn, MVertex stageOriginIn, double stageAngleIn)
+        {
+            return new MVertex(
+                (stageOriginIn.X + (invertsIn.X * (((targetOnCADIn.X) * Math.Cos(stageAngleIn)) - ((targetOnCADIn.Y) * Math.Sin(stageAngleIn))))),
+                (stageOriginIn.Y + (invertsIn.Y * (((targetOnCADIn.X) * Math.Sin(stageAngleIn)) + ((targetOnCADIn.Y) * Math.Cos(stageAngleIn)))))
+            );
+        }
+
+        /// <summary>
+        /// Calculates the target (as per CAD) on the stage centred about the
+        /// optical axis.
+        /// </summary>
         /// <param name="targetOnCADIn">The target position as per CAD</param>
         /// <returns>The actual stage coordinate</returns>
         public MVertex GetTargetPositionOnStage(MVertex targetOnCADIn)
