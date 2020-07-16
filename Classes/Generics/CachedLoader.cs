@@ -5,8 +5,8 @@ namespace MarkGeometriesLib.Classes.Generics
 {
     public class CachedLoader<T>
     {
-        private Dictionary<string, T> _buffer;
-        private List<string> _capacityTracker;
+        private Dictionary<object, T> _buffer;
+        private List<object> _capacityTracker;
 
         public int Capacity { get; private set; }
         public int Count => _capacityTracker.Count;
@@ -14,8 +14,8 @@ namespace MarkGeometriesLib.Classes.Generics
         public CachedLoader(int capacity = 10)
         {
             // create buffer to store items
-            _buffer = new Dictionary<string, T>();
-            _capacityTracker = new List<string>();
+            _buffer = new Dictionary<object, T>();
+            _capacityTracker = new List<object>();
 
             // capacity must be greater than 1
             Capacity = Math.Max(capacity, 1);
@@ -32,7 +32,7 @@ namespace MarkGeometriesLib.Classes.Generics
         /// <param name="tag"></param>
         /// <param name="getter"></param>
         /// <returns></returns>
-        public T TryGet(string tag, Func<T> getter)
+        public T TryGet(object tag, Func<T> getter)
         {
             // if item does not exist in buffer
             if (_buffer.ContainsKey(tag) == false)
