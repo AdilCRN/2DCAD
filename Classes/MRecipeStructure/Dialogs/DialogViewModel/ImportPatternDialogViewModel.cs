@@ -436,7 +436,7 @@ namespace MRecipeStructure.DialogsDialogs.DialogViewModel
                     layer.AlignmentType = AlignmentType;
                     layer.PatternFilePath = fileName;
                     layer.ProcessParametersFilePath = ProcessParametersFilePath;
-                    layer.TargetProcessMode = TargetProcessMode.Name.EnglishValue;
+                    layer.TargetProcessMode = TargetProcessMode?.Name.EnglishValue;
                     layer.TileSettings = (MTileSettings)TileSettings.Clone();
                     device.AddLayer(layer);
                 }
@@ -453,7 +453,7 @@ namespace MRecipeStructure.DialogsDialogs.DialogViewModel
                 layer.AlignmentType = AlignmentType;
                 layer.PatternFilePath = PatternFilePath;
                 layer.ProcessParametersFilePath = ProcessParametersFilePath;
-                layer.TargetProcessMode = TargetProcessMode.Name.EnglishValue;
+                layer.TargetProcessMode = TargetProcessMode?.Name.EnglishValue;
                 layer.TileSettings = (MTileSettings)TileSettings.Clone();
                 device.AddLayer(layer);
 
