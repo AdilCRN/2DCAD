@@ -486,9 +486,9 @@ namespace SharpGLShader
             // draw contents in buffer
             Draw(gl, OpenGL.GL_POINTS, _points);
             for (int i = 0; i < _openPolylines.Count; i++)
-                Draw(gl, OpenGL.GL_LINE_STRIP, _openPolylines[i].Vertices, _openPolylines[i].Color);
+                Draw(gl, OpenGL.GL_LINE_STRIP, _openPolylines[i]?.Vertices, _openPolylines[i]?.Color);
             for (int i = 0; i < _closedPolylines.Count; i++)
-                Draw(gl, OpenGL.GL_LINE_LOOP, _closedPolylines[i].Vertices, _closedPolylines[i].Color);
+                Draw(gl, OpenGL.GL_LINE_LOOP, _closedPolylines[i]?.Vertices, _closedPolylines[i]?.Color);
             Draw(gl, OpenGL.GL_LINES, _lines);
         }
 
@@ -497,9 +497,9 @@ namespace SharpGLShader
             // draw contents in buffer
             Draw(gl, OpenGL.GL_POINTS, _points, color);
             for (int i = 0; i < _openPolylines.Count; i++)
-                Draw(gl, OpenGL.GL_LINE_STRIP, _openPolylines[i].Vertices, _openPolylines[i].Color == null ? color : _openPolylines[i].Color);
+                Draw(gl, OpenGL.GL_LINE_STRIP, _openPolylines[i]?.Vertices, _openPolylines[i]?.Color == null ? color : _openPolylines[i].Color);
             for (int i = 0; i < _closedPolylines.Count; i++)
-                Draw(gl, OpenGL.GL_LINE_LOOP, _closedPolylines[i].Vertices, _closedPolylines[i].Color == null ? color : _closedPolylines[i].Color);
+                Draw(gl, OpenGL.GL_LINE_LOOP, _closedPolylines[i]?.Vertices, _closedPolylines[i]?.Color == null ? color : _closedPolylines[i].Color);
             Draw(gl, OpenGL.GL_LINES, _lines, color);
         }
 

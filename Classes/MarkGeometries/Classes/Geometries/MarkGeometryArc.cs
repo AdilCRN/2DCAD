@@ -1,4 +1,5 @@
-﻿using netDxf.Entities;
+﻿using Emgu.CV;
+using netDxf.Entities;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -115,6 +116,40 @@ namespace MSolvLib.MarkGeometry
             StartAngle = startAngle;
             EndAngle = endAngle;
             CentrePoint = new MarkGeometryPoint(x, y, z);
+
+            Update();
+        }
+
+        /// <summary>
+        /// see: http://www.lee-mac.com/bulgeconversion.html
+        /// The curvature of a Polyline Arc segment is defined using a quantity known as bulge. 
+        /// This unit measures the deviation of the curve from the straight line (chord) joining the two vertices of the segment. 
+        /// It is defined as the ratio of the arc sagitta (versine) to half the length of 
+        /// the chord between the two vertices; this ratio is equal to the tangent of a 
+        /// quarter of the included arc angle between the two polyline vertices.
+        /// </summary>
+        /// <param name="startPoint"></param>
+        /// <param name="endPoint"></param>
+        /// <param name="bulge"></param>
+        public MarkGeometryArc(MarkGeometryPoint startPoint, MarkGeometryPoint endPoint, double bulge)
+        {
+            var d = GeometricArithmeticModule.ABSMeasure(startPoint, endPoint) / 2d; 
+            var r = (d * ((Math.Pow(bulge, 2)) + 1)) / (2 * bulge);
+            var th = GeometricArithmeticModule.CalculateAngle(startPoint, endPoint) + Math.Acos(d / r);
+
+            Radius = Math.Abs(r);
+            CentrePoint = MarkGeometryPoint.FromPolar(startPoint, th, r);
+            
+            if (bulge < 0)
+            {
+                StartAngle = GeometricArithmeticModule.CalculateAngle(CentrePoint, endPoint);
+                EndAngle = GeometricArithmeticModule.CalculateAngle(CentrePoint, startPoint);
+            }
+            else
+            {
+                StartAngle = GeometricArithmeticModule.CalculateAngle(CentrePoint, startPoint);
+                EndAngle = GeometricArithmeticModule.CalculateAngle(CentrePoint, endPoint);
+            }
 
             Update();
         }

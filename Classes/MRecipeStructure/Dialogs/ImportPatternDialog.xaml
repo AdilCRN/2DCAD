@@ -256,6 +256,11 @@
                     </TabItem.Header>
 
                     <Grid>
+
+                        <Grid.Resources>
+                            <mClasses:BindingProxy x:Key="proxy" Data="{Binding}" />
+                        </Grid.Resources>
+                        
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
@@ -314,10 +319,6 @@
                             HorizontalScrollBarVisibility="Auto"
                             ItemsSource="{Binding Fiducials}">
 
-                            <DataGrid.Resources>
-                                <mClasses:BindingProxy x:Key="proxy" Data="{Binding}" />
-                            </DataGrid.Resources>
-
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn
                                     Header="#"
@@ -370,7 +371,7 @@
                                                 ToolTip="Delete fiducial"
                                                 CommandParameter="{Binding}"
                                                 Style="{StaticResource BaseActionButton}"
-                                                Command="{Binding DeleteFiducialCommand}"/>
+                                                Command="{Binding Source={StaticResource proxy}, Path=DeleteFiducialCommand}"/>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>

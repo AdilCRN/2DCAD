@@ -206,14 +206,17 @@
     <Compile Include="Classes\MRecipeStructure\UserControls\ArrayInfoUserControl\ArrayInfoUserControl.xaml.cs">
       <DependentUpon>ArrayInfoUserControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Classes\MRecipeStructure\UserControls\EditableTextBlockUserControl\EditableTextBlockUserControl.xaml.cs">
+      <DependentUpon>EditableTextBlockUserControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Classes\MRecipeStructure\UserControls\FiducialInfoUserControl\FiducialInfoUserControl.xaml.cs">
       <DependentUpon>FiducialInfoUserControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="Classes\MRecipeStructure\UserControls\RecipeLayerUserControl\RecipeLayerUserControl.xaml.cs">
       <DependentUpon>RecipeLayerUserControl.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Classes\MRecipeStructure\UserControls\RecipeUserControl\MRecipeUserControl.xaml.cs">
-      <DependentUpon>MRecipeUserControl.xaml</DependentUpon>
+    <Compile Include="Classes\MRecipeStructure\UserControls\RecipeTreeViewUserControl\MRecipeTreeViewUserControl.xaml.cs">
+      <DependentUpon>MRecipeTreeViewUserControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="Classes\MRecipeStructure\UserControls\TransformInfoUserControl\TransformInfoUserControl.xaml.cs">
       <DependentUpon>TransformInfoUserControl.xaml</DependentUpon>
@@ -290,6 +293,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Classes\MRecipeStructure\UserControls\EditableTextBlockUserControl\EditableTextBlockUserControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Classes\MRecipeStructure\UserControls\FiducialInfoUserControl\FiducialInfoUserControl.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -298,7 +305,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Classes\MRecipeStructure\UserControls\RecipeUserControl\MRecipeUserControl.xaml">
+    <Page Include="Classes\MRecipeStructure\UserControls\RecipeTreeViewUserControl\MRecipeTreeViewUserControl.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

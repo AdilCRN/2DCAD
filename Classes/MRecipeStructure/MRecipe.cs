@@ -18,10 +18,10 @@ namespace MRecipeStructure.Classes.MRecipeStructure
         #region Section: File Saving Meta
 
         [XmlIgnore]
-        public static string DefaultFileExtension = "rcp.xml";
+        public static string DefaultFileExtension = "rcp";
 
         [XmlIgnore]
-        public static string FileFilter = "MSOLV Recipe files (*.rcp.xml)|*.rcp.xml";
+        public static string FileFilter = "MSOLV Recipe files (*.rcp)|*.rcp";
 
         /**
          *  This variable is automatically updated when its contents are loaded from a file.

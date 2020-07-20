@@ -34,25 +34,37 @@ namespace MarkGeometriesLib.Classes.Generics
         /// <returns></returns>
         public T TryGet(object tag, Func<T> getter)
         {
-            // if item does not exist in buffer
-            if (_buffer.ContainsKey(tag) == false)
+            lock(_buffer)
             {
-                // if count is greater than capacity
-                if (Count >= Capacity && Capacity > 0)
+                // if item does not exist in buffer
+                if (_buffer.ContainsKey(tag) == false)
                 {
-                    // remove item from buffer
-                    _buffer.Remove(_capacityTracker[0]);
+                    // if count is greater than capacity
+                    if (Count >= Capacity && Capacity > 0)
+                    {
+                        // remove item from buffer
+                        _buffer.Remove(_capacityTracker[0]);
 
-                    // stop tracking tag
-                    _capacityTracker.RemoveAt(0);
+                        // stop tracking tag
+                        _capacityTracker.RemoveAt(0);
+                    }
+
+                    if (getter != null)
+                    {
+                        // add item to buffer and track tag
+                        _buffer[tag] = getter();
+                    }
+                    else
+                    {
+                        // don't cache nulls
+                        return default(T);
+                    }
+
+                    _capacityTracker.Add(tag);
                 }
 
-                // add item to buffer and track tag
-                _buffer[tag] = getter();
-                _capacityTracker.Add(tag);
+                return _buffer[tag];
             }
-
-            return _buffer[tag];
         }
     }
 }

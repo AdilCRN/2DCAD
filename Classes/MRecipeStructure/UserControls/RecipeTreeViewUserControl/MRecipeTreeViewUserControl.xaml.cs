@@ -5,31 +5,30 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml.Serialization;
 
-namespace MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeUserControl
+namespace MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeTreeViewUserControl
 {
     /// <summary>
     /// Interaction logic for MRecipeUserControl.xaml
     /// </summary>
-    public partial class MRecipeUserControl : UserControl, INotifyPropertyChanged
+    public partial class MRecipeTreeViewUserControl : UserControl, INotifyPropertyChanged
     {
         #region Section: DependencyProperty
 
         public static readonly DependencyProperty RecipeItemsSourceProperty = DependencyProperty.Register(
-            "RecipeItemsSource", typeof(MRecipe), typeof(MRecipeUserControl),
+            "RecipeItemsSource", typeof(MRecipe), typeof(MRecipeTreeViewUserControl),
             new FrameworkPropertyMetadata(
                 null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnValueChanged
             )
         );
 
         public static readonly DependencyProperty RecipeItemSelectedCommandProperty = DependencyProperty.Register(
-            "RecipeItemSelectedCommand", typeof(DelegateCommand<MRecipeBaseNode>), typeof(MRecipeUserControl),
+            "RecipeItemSelectedCommand", typeof(DelegateCommand<MRecipeBaseNode>), typeof(MRecipeTreeViewUserControl),
             new FrameworkPropertyMetadata(
                 null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault
             )
@@ -115,6 +114,19 @@ namespace MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeUserContr
             }
         }
 
+        private bool _isEditingTag = false;
+
+        public bool IsEditingTag
+        {
+            get { return _isEditingTag; }
+            set 
+            { 
+                _isEditingTag = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+
         #endregion
 
         #region Section: Delegate Commands
@@ -134,7 +146,7 @@ namespace MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeUserContr
 
         #endregion
 
-        public MRecipeUserControl()
+        public MRecipeTreeViewUserControl()
         {
             InitializeComponent();
 
@@ -152,15 +164,15 @@ namespace MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeUserContr
                 }
             );
 
-            ItemSelectedCommand = new DelegateCommand<MRecipeBaseNode>(
-                (selectedItem)=> {
-                    NotifyPropertyChanged(nameof(CanPasteItem));
-                    NotifyPropertyChanged(nameof(CanCreateChild));
+            //ItemSelectedCommand = new DelegateCommand<MRecipeBaseNode>(
+            //    (selectedItem)=> {
+            //        NotifyPropertyChanged(nameof(CanPasteItem));
+            //        NotifyPropertyChanged(nameof(CanCreateChild));
 
-                    // run receipe selected callback on a different thread
-                    SelectNode(selectedItem);
-                }
-            );
+            //        // run receipe selected callback on a different thread
+            //        SelectNode(selectedItem);
+            //    }
+            //);
 
             RightClickContextMenuCommand = new DelegateCommand<MRecipeBaseNode>(
                 (selectedItem) => {
@@ -230,7 +242,7 @@ namespace MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeUserContr
             DuplicateItemCommand = new DelegateCommand<MRecipeBaseNode>(
                 (node) => {
 
-                    CopyItem((MRecipeBaseNode)node.Clone(), (MRecipeBaseNode)node.Parent, false);
+                    CopyItem((MRecipeBaseNode)node.Clone(), (MRecipeBaseNode)node, false);
 
                     lock (_undoRedoHelper)
                         _undoRedoHelper.SaveState();
@@ -247,8 +259,6 @@ namespace MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeUserContr
                     if (dialog.ShowDialog() != true)
                         return;
 
-                    var targetNode = (MRecipeBaseNode)node.Parent;
-
                     try
                     {
                         lock (_undoRedoHelper)
@@ -261,7 +271,7 @@ namespace MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeUserContr
                             clone.TransformInfo.OffsetY += positionInfo.XInfo.Offset;
                             clone.TransformInfo.OffsetZ += positionInfo.XInfo.Offset;
 
-                            CopyItem(clone, targetNode, false);
+                            CopyItem(clone, node, false);
                         });
                     }
                     finally
@@ -386,8 +396,14 @@ namespace MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeUserContr
 
         public void SelectNode(MRecipeBaseNode node)
         {
-            _lastSelectedNode = node;
-            RecipeItemSelectedCommand?.Execute(node);
+            if (
+                node != null &&
+                _lastSelectedNode != node
+            )
+            {
+                _lastSelectedNode = node;
+                RecipeItemSelectedCommand?.Execute(node);
+            }
         }
 
         public void UpdateItemsSource()
@@ -413,8 +429,17 @@ namespace MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeUserContr
 
         public static void OnValueChanged(DependencyObject sender, DependencyPropertyChangedEventArgs Args)
         {
-            var view = sender as MRecipeUserControl;
+            var view = sender as MRecipeTreeViewUserControl;
             view.UpdateItemsSource();
+        }
+
+        private void RecipeTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            NotifyPropertyChanged(nameof(CanPasteItem));
+            NotifyPropertyChanged(nameof(CanCreateChild));
+
+            // run receipe selected callback on a different thread
+            SelectNode(e.NewValue as MRecipeBaseNode);
         }
 
         #region Section: Undo and Redo
@@ -667,6 +692,23 @@ namespace MRecipeStructure.Classes.MRecipeStructure.UserControls.RecipeUserContr
                     if (deleteSource)
                         sourceParent.Layers.Remove(data);
                     targetParent.Layers.Insert(targetIndex, data);
+
+                    // update source's parent
+                    sourceItem.Parent = targetItem.Parent;
+                    lock (_undoRedoHelper)
+                        _undoRedoHelper.SaveState();
+                }
+                else if (sourceItem is MRecipePlate)
+                {
+                    var data = (sourceItem as MRecipePlate);
+                    var targetParent = (targetItem.Parent as MRecipe);
+                    var sourceParent = (sourceItem.Parent as MRecipe);
+                    int targetIndex = targetParent.Plates.IndexOf(targetItem as MRecipePlate);
+
+                    // remove data from source and insert data into target
+                    if (deleteSource)
+                        sourceParent.Plates.Remove(data);
+                    targetParent.Plates.Insert(targetIndex, data);
 
                     // update source's parent
                     sourceItem.Parent = targetItem.Parent;

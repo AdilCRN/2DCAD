@@ -264,6 +264,20 @@ namespace MSolvLib.MarkGeometry
             Update();
         }
 
+        public void Add(MarkGeometryPoint point, bool deferUpdate = false)
+        {
+            if (
+                Points.Count > 0 &&
+                GeometricArithmeticModule.Compare(EndPoint, point, ClosureTolerance) == 0
+            )
+                return; // ignore existing points
+
+            Points.Add(point);
+
+            if (!deferUpdate)
+                Update();
+        }
+
         public override void SetFill(Color? colorIn)
         {
             Parallel.ForEach(Points, (point) =>
@@ -380,19 +394,19 @@ namespace MSolvLib.MarkGeometry
 
         public override void Transform(Matrix4x4 transformationMatrixIn)
         {
-            //Parallel.ForEach(Points, (point) =>
-            //{
-            //    point.Transform(transformationMatrixIn);
-            //});
+            Parallel.For(0, Points.Count, (i) =>
+            {
+                Points[i].Transform(transformationMatrixIn);
+            });
 
-            foreach (var point in Points)
-                point.Transform(transformationMatrixIn);
+            //foreach (var point in Points)
+            //    point.Transform(transformationMatrixIn);
 
             SetExtents();
 
+            // TODO : Compute Centroid
             //CentrePoint.Transform(transformationMatrixIn);
-
-            //Update();
+            // TODO : Doesn't need to run update as it's properties (e.g. Area and Perimeter) hasn't changed
         }
 
         public override void Draw2D(IMarkGeometryVisualizer2D view, bool shouldShowVertex)

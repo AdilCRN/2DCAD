@@ -1,6 +1,7 @@
 ﻿using netDxf.Entities;
 using System;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Xml;
 using System.Xml.Serialization;
 
@@ -205,6 +206,11 @@ namespace MSolvLib.MarkGeometry
             return p1 + new MarkGeometryPoint(number, number, number);
         }
 
+        public static MarkGeometryPoint operator +(double number, MarkGeometryPoint p1)
+        {
+            return new MarkGeometryPoint(number, number, number) + p1;
+        }
+
         public static MarkGeometryPoint operator -(MarkGeometryPoint p1, MarkGeometryPoint p2)
         {
             return new MarkGeometryPoint(
@@ -217,6 +223,11 @@ namespace MSolvLib.MarkGeometry
         public static MarkGeometryPoint operator -(MarkGeometryPoint p1, double number)
         {
             return p1 - new MarkGeometryPoint(number, number, number);
+        }
+
+        public static MarkGeometryPoint operator -(double number, MarkGeometryPoint p1)
+        {
+            return new MarkGeometryPoint(number, number, number) - p1;
         }
 
         public static MarkGeometryPoint operator *(MarkGeometryPoint p1, MarkGeometryPoint p2)
@@ -233,6 +244,11 @@ namespace MSolvLib.MarkGeometry
             return p1 * new MarkGeometryPoint(number, number, number);
         }
 
+        public static MarkGeometryPoint operator *(double number, MarkGeometryPoint p1)
+        {
+            return new MarkGeometryPoint(number, number, number) * p1;
+        }
+
         public static MarkGeometryPoint operator /(MarkGeometryPoint p1, MarkGeometryPoint p2)
         {
             return new MarkGeometryPoint(
@@ -245,6 +261,11 @@ namespace MSolvLib.MarkGeometry
         public static MarkGeometryPoint operator /(MarkGeometryPoint p1, double number)
         {
             return p1 / new MarkGeometryPoint(number, number, number);
+        }
+
+        public static MarkGeometryPoint operator /(double number, MarkGeometryPoint p1)
+        {
+            return new MarkGeometryPoint(number, number, number) / p1;
         }
 
         public static bool operator <(MarkGeometryPoint p1, MarkGeometryPoint p2)
@@ -265,6 +286,22 @@ namespace MSolvLib.MarkGeometry
         public static bool operator >=(MarkGeometryPoint p1, MarkGeometryPoint p2)
         {
             return GeometricArithmeticModule.Measure(p1, p2) >= 0;
+        }
+
+        /// <summary>
+        ///     Create a new point from a polar coordinate
+        /// </summary>
+        /// <param name="origin">The point's origin</param>
+        /// <param name="angle">The angle in radians</param>
+        /// <param name="radius">The radius</param>
+        /// <returns>Returns a new point a the polar position away from the origin</returns>
+        public static MarkGeometryPoint FromPolar(MarkGeometryPoint origin, double angle, double radius)
+        {
+            return new MarkGeometryPoint(
+                origin.X + (radius * Math.Cos(angle)),
+                origin.Y + (radius * Math.Sin(angle)),
+                origin.Z
+            );
         }
 
         //public static bool operator ==(MarkGeometryPoint p1, MarkGeometryPoint p2)

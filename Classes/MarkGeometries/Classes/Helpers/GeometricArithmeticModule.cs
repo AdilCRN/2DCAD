@@ -203,6 +203,56 @@ namespace MSolvLib.MarkGeometry
         }
 
         /// <summary>
+        ///     Calculates the YAW (angle in radians) of a given geometry
+        /// </summary>
+        /// <param name="geometry"></param>
+        /// <returns>The angle in radians</returns>
+        public static double CalculateAngle(IMarkGeometry geometry)
+        {
+            if (geometry is MarkGeometryPoint point)
+            {
+                return Math.Atan2(point.Y, point.X);
+            }
+            else if (geometry is MarkGeometryLine line)
+            {
+                return Math.Atan2(
+                    line.EndPoint.Y - line.StartPoint.Y,
+                    line.EndPoint.X - line.StartPoint.X
+                );
+            }
+            else if (geometry is MarkGeometryCircle circle)
+            {
+                return Math.Atan2(
+                    circle.CentrePoint.Y - circle.StartPoint.Y,
+                    circle.CentrePoint.X - circle.StartPoint.X
+                );
+            }
+            else if (geometry is MarkGeometryArc arc)
+            {
+                return Math.Atan2(
+                    arc.CentrePoint.Y - arc.StartPoint.Y,
+                    arc.CentrePoint.X - arc.StartPoint.X
+                );
+            }
+
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        ///     Calculates the YAW (angle in radians) between two 
+        /// </summary>
+        /// <param name="p1In"></param>
+        /// <param name="p2In"></param>
+        /// <returns>The angle in radians</returns>
+        public static double CalculateAngle(MarkGeometryPoint p1In, MarkGeometryPoint p2In)
+        {
+            return Math.Atan2(
+                p2In.Y - p1In.Y,
+                p2In.X - p1In.X
+            );
+        }
+
+        /// <summary>
         ///     Calculates the euler orientation of a given vector
         /// </summary>
         /// <param name="point">The vector relative to the origin 0,0,0</param>
@@ -411,10 +461,10 @@ namespace MSolvLib.MarkGeometry
         /// <returns>Returns the rotational transformation matrix for the given parameters.</returns>
         public static Matrix4x4 GetRotationTransformationMatrix(double rxRad, double ryRad, double rzRad)
         {
-            return Matrix4x4.CreateFromYawPitchRoll(
-                (float)ryRad,
-                (float)rxRad,
-                (float)rzRad
+            return CombineTransformations(
+                Matrix4x4.CreateRotationX((float)rxRad),
+                Matrix4x4.CreateRotationY((float)ryRad),
+                Matrix4x4.CreateRotationZ((float)rzRad)
             );
         }
 
@@ -1032,6 +1082,10 @@ namespace MSolvLib.MarkGeometry
             else if (geometry is MarkGeometryQuadraticBezier quadraticBezier)
             {
                 return GetPointAtPosition(quadraticBezier.StartPoint, quadraticBezier.EndPoint, quadraticBezier.ControlPoint, position);
+            }
+            else if (geometry is MarkGeometrySpline spline)
+            {
+                return spline.C(position);
             }
             else if (geometry is MarkGeometryPath path)
             {
