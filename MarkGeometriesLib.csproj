@@ -191,6 +191,7 @@
     <Compile Include="Classes\MRecipeStructure\MAlignmentType.cs" />
     <Compile Include="Classes\MRecipeStructure\MArrayInfo.cs" />
     <Compile Include="Classes\MRecipeStructure\MArrayItemData.cs" />
+    <Compile Include="Classes\MRecipeStructure\MArrayStartLocation.cs" />
     <Compile Include="Classes\MRecipeStructure\MArrayStyle.cs" />
     <Compile Include="Classes\MRecipeStructure\MFiducialInfo.cs" />
     <Compile Include="Classes\MRecipeStructure\MLinkedNode.cs" />

@@ -40,6 +40,7 @@
         <TextBox 
             Focusable="True"
             LostFocus="TextBox_LostFocus"
+            HorizontalAlignment="Stretch"
             VerticalContentAlignment="Center"
             Text="{Binding mText, FallbackValue='None', Mode=TwoWay, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, UpdateSourceTrigger=PropertyChanged}">
             <TextBox.InputBindings>
