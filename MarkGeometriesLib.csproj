@@ -169,6 +169,7 @@
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\GeometricEulerOrientation.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\GeometryShader2D.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\MarkGeometriesWrapper.cs" />
+    <Compile Include="Classes\MarkGeometries\Classes\Helpers\MVectorToGeometryConverter.cs" />
     <Compile Include="Classes\MarkGeometries\Interfaces\IMarkGeometryVisualizer2D.cs" />
     <Compile Include="Classes\MRecipeStructure\Dialogs\DialogViewModel\ImportPatternDialogViewModel.cs" />
     <Compile Include="Classes\MRecipeStructure\Dialogs\DialogViewModel\ImportSTLDialogViewModel.cs" />
