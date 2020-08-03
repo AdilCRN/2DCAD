@@ -29,6 +29,9 @@ namespace MRecipeStructure.Dialogs
             ProcessModeSelectorModel markingModeSelectorIn,
             IPrePostRecipe prePostRecipeIn,
             ICamToBeam cam2BeamIn,
+            Func<(bool InvertX, bool InvertY)> getInvertsIn,
+            Func<(double X, double Y)> getCamToBeamOffsetIn,
+            Func<(double X, double Y, double Theta)> getMachineOriginIn,
             IAbortComponent abort,
             MRecipe recipeIn
         )
@@ -64,6 +67,9 @@ namespace MRecipeStructure.Dialogs
                 new RunRecipeDialogModel(
                     processConfigTasksHandlerIn,
                     markingModeSelectorIn,
+                    getInvertsIn,
+                    getCamToBeamOffsetIn,
+                    getMachineOriginIn,
                     prePostRecipeIn,
                     cam2BeamIn,
                     abort
@@ -81,7 +87,7 @@ namespace MRecipeStructure.Dialogs
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (_viewModel.IsRunning)
+            if (_viewModel?.IsRunning == true)
             {
                 var response = DispatcherMessageBox.ShowBox(
                     "The process is still running, do you wish to ABORT this?",

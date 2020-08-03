@@ -1,8 +1,9 @@
-﻿using MSolvLib.Classes.ProcessConfiguration;
+﻿using MSolvLib.Classes;
+using MSolvLib.Classes.Alignment;
+using MSolvLib.Classes.ProcessConfiguration;
 using MSolvLib.DialogForms;
 using MSolvLib.MarkGeometry;
 using System.Collections.Generic;
-using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,6 +36,6 @@ namespace MRecipeStructure.Dialogs.ProcessRecipeUtils
         Task<((double X, double Y) Position, bool Found)> TakeMeasurement();
 
         // processing
-        Task<bool> MarkPattern(IProcessConfiguration configuration, Matrix4x4 stageTransform, List<IMarkGeometry> pattern, IMarkParametersComplete parameters, CancellationToken ctIn);
+        Task<bool> MarkPattern(List<IMarkGeometry> vectors, IMarkParametersComplete parametersIn, PanelXYThetaScale alignment, IProcessConfiguration procConfig, CancellationToken ct, bool dontApplyCamToBeam, object objectIn = null);
     }
 }

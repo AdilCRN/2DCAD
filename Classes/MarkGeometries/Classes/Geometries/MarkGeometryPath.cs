@@ -278,6 +278,75 @@ namespace MSolvLib.MarkGeometry
                 Update();
         }
 
+        /// <summary>
+        /// Add point to the begininng of a path.
+        /// </summary>
+        /// <param name="point"></param>
+        /// <param name="deferUpdate"></param>
+        public void Prepend(MarkGeometryPoint point, bool deferUpdate = false)
+        {
+            if (
+                Points.Count > 0 &&
+                GeometricArithmeticModule.Compare(StartPoint, point, ClosureTolerance) == 0
+            )
+                return; // ignore existing points
+
+            Points.Insert(0, point);
+
+            if (!deferUpdate)
+                Update();
+        }
+
+        /// <summary>
+        /// Add points to the begininng of a path.
+        /// </summary>
+        /// <param name="points"></param>
+        /// <param name="deferUpdate"></param>
+        public void Prepend(IEnumerable<MarkGeometryPoint> points, bool deferUpdate = false)
+        {
+
+            foreach (var point in points.Reverse())
+            {
+                Prepend(point, true);
+            }
+
+            if (!deferUpdate)
+                Update();
+        }
+
+        /// <summary>
+        /// Add point to the end of the path
+        /// </summary>
+        /// <param name="point"></param>
+        /// <param name="deferUpdate"></param>
+        public void Append(MarkGeometryPoint point, bool deferUpdate = false)
+        {
+            if (
+                Points.Count > 0 &&
+                GeometricArithmeticModule.Compare(EndPoint, point, ClosureTolerance) == 0
+            )
+                return; // ignore existing points
+
+            Points.Add(point);
+
+            if (!deferUpdate)
+                Update();
+        }
+
+        /// <summary>
+        /// Add points to the end of the path
+        /// </summary>
+        /// <param name="points"></param>
+        /// <param name="deferUpdate"></param>
+        public void AppendRange(IEnumerable<MarkGeometryPoint> points, bool deferUpdate = false)
+        {
+            foreach (var point in points)
+                Append(point, true);
+
+            if (!deferUpdate)
+                Update();
+        }
+
         public override void SetFill(Color? colorIn)
         {
             Parallel.ForEach(Points, (point) =>

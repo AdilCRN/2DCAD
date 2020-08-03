@@ -64,6 +64,64 @@ namespace MRecipeStructure.Classes.MRecipeStructure
             Layers.Add(layer);
         }
 
+        /// <summary>
+        /// Use to get all layers.
+        /// </summary>
+        /// <param name="callback"></param>
+        public void BeginGetAllLayers(Action<MRecipeDeviceLayer> callback)
+        {
+            MArrayInfo.BeginGetAll(ArrayInfo, (index) =>
+            {
+                foreach (var l in Layers)
+                {
+                    var layer = (MRecipeDeviceLayer)l.Clone();
+
+                    layer.TransformInfo.OffsetX += index.XInfo.Offset;
+                    layer.TransformInfo.OffsetY += index.YInfo.Offset;
+                    layer.TransformInfo.OffsetZ += index.ZInfo.Offset;
+
+                    callback(layer);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Use to get layers when order does not matter.
+        /// </summary>
+        /// <param name="callback"></param>
+        public void BeginGetAllLayers_Parallel(Action<MRecipeDeviceLayer> callback)
+        {
+            MArrayInfo.BeginGetAll_Parallel(ArrayInfo, (index) =>
+            {
+                Parallel.ForEach(Layers, (l) =>
+                {
+                    var layer = (MRecipeDeviceLayer)l.Clone();
+
+                    layer.TransformInfo.OffsetX += index.XInfo.Offset;
+                    layer.TransformInfo.OffsetY += index.YInfo.Offset;
+                    layer.TransformInfo.OffsetZ += index.ZInfo.Offset;
+
+                    callback(layer);
+                });
+            });
+        }
+
+        /// <summary>
+        /// Use to get all devices.
+        /// </summary>
+        /// <returns></returns>
+        public List<MRecipeDeviceLayer> Flatten()
+        {
+            var layers = new List<MRecipeDeviceLayer>();
+
+            BeginGetAllLayers((layer) =>
+            {
+                layers.Add(layer);
+            });
+
+            return layers;
+        }
+
         public override object Clone()
         {
             return new MRecipeDevice(this);

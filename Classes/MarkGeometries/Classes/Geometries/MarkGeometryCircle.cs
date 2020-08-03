@@ -110,7 +110,7 @@ namespace MSolvLib.MarkGeometry
         {
             List<MarkGeometryPoint> points = new List<MarkGeometryPoint>();
 
-            for (int i = 0; i < circle.VertexCount; i++)
+            for (int i = 0; i <= circle.VertexCount; i++)
             {
                 points.Add(
                     GeometricArithmeticModule.GetPointAtPosition(circle, (double)i / (double)circle.VertexCount)

@@ -9,6 +9,11 @@ using System.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 using System.Data;
 using MSolvLib.HardwareClasses.RTC.RTC5;
+using Emgu.CV.CvEnum;
+using System.Windows.Controls;
+using Xceed.Wpf.AvalonDock.Controls;
+using MSolvLib.Classes.DXFTiling;
+using System.Threading.Tasks;
 
 namespace MSolvLib.MarkGeometry
 {
@@ -233,6 +238,10 @@ namespace MSolvLib.MarkGeometry
                     arc.CentrePoint.Y - arc.StartPoint.Y,
                     arc.CentrePoint.X - arc.StartPoint.X
                 );
+            }
+            else if (geometry is MarkGeometryPath path)
+            {
+                return CalculateAngle(path.StartPoint, path.EndPoint);
             }
 
             throw new NotImplementedException();
@@ -574,7 +583,7 @@ namespace MSolvLib.MarkGeometry
             // https://www.mauriciopoppe.com/notes/computer-graphics/transformation-matrices/combining-transformations/
 
             if (
-                transformations == null || transformations.Length < 0
+                transformations == null || transformations.Length <= 0
             )
                 return Matrix4x4.Identity;
 
@@ -702,6 +711,155 @@ namespace MSolvLib.MarkGeometry
 
             geometry.Transform(transformationMatrix);
             return geometry;
+        }
+
+        /// <summary>
+        ///     Use to extend a geometry's length.
+        /// </summary>
+        /// <param name="geometry">The input geometry</param>
+        /// <param name="extension">The extension amount</param>
+        /// <param name="type">The positon of the geometry to extend</param>
+        /// <returns></returns>
+        public static IMarkGeometry Extend(IMarkGeometry geometry, double extension, ExtentionType type = ExtentionType.EXTEND_BOTH)
+        {
+
+            var extensionAsRatio = extension / geometry.Perimeter;
+            var startPosition = ((type & ExtentionType.EXTEND_START) == ExtentionType.EXTEND_START) ? -extensionAsRatio : 0;
+            var endPosition = ((type & ExtentionType.EXTEND_END) == ExtentionType.EXTEND_END) ? (1d + extensionAsRatio) : 1d;
+
+            if (geometry is MarkGeometryPoint point)
+            {
+                return point;
+            }
+            else if (geometry is MarkGeometryCircle circle)
+            {
+                return circle;
+            }
+            else if (geometry is MarkGeometryLine line)
+            {
+                var startPoint = GetPointAtPosition(line, startPosition);
+                var endPoint = GetPointAtPosition(line, endPosition);
+
+                line.StartPoint = startPoint;
+                line.EndPoint = endPoint;
+                line.Update();
+
+                return line;
+            }
+            else if (geometry is MarkGeometryArc arc)
+            {
+                var startPoint = GetPointAtPosition(arc, startPosition);
+                var endPoint = GetPointAtPosition(arc, endPosition);
+
+                var __arc = new MarkGeometryArc(arc.CentrePoint, startPoint, endPoint);
+
+                arc.Radius = __arc.Radius;
+                arc.StartAngle = __arc.StartAngle;
+                arc.EndAngle = __arc.EndAngle;
+                arc.CentrePoint = __arc.CentrePoint;
+                arc.Update();
+
+                return arc;
+
+            }
+            else if (geometry is MarkGeometryPath path)
+            {
+                if (!path.IsClosed)
+                {
+                    var startPoint = GetPointAtPosition(path, startPosition);
+                    var endPoint = GetPointAtPosition(path, endPosition);
+
+                    path.Prepend(startPoint, deferUpdate: true);
+                    path.Append(endPoint, deferUpdate: true);
+                    path.Update();
+                }
+
+                return path;
+            }
+            else if (geometry is IMarkGeometryWrapper wrapper)
+            {
+                wrapper.BeginGetAll((wrappedGeometry) =>
+                {
+                    Extend(wrappedGeometry, extension, type);
+                    return true;
+                });
+            }
+
+            throw new NotSupportedException($"A geometry of type: '{geometry.GetType().Name}' is not supported");
+        }
+
+        /// <summary>
+        /// Applies a knot to a geometry, by moving the knot to match the input geometries start/end position and angle.
+        /// </summary>
+        /// <param name="geometry">The input geometry</param>
+        /// <param name="knot">The knot/pattern to apply</param>
+        /// <param name="type">The position of the knot on the geometry</param>
+        /// <returns></returns>
+        public static List<IMarkGeometry> ApplyKnotToGeometry(IMarkGeometry geometry, List<IMarkGeometry> knot, ExtentionType type = ExtentionType.EXTEND_BOTH)
+        {
+            var pattern = new List<IMarkGeometry>();
+
+            if ((type & ExtentionType.EXTEND_START) == ExtentionType.EXTEND_START)
+            {
+                var targetPoint = GetPointAtPosition(geometry, 0d);
+
+                // get angle of the starting tip of the geometry
+                var angle = CalculateAngle(
+                    targetPoint,
+                    GetPointAtPosition(geometry, 0.01d)
+                );
+
+                var transform = CombineTransformations(
+                    // apply rotation
+                    GetRotationTransformationMatrix(
+                        0, 0, angle
+                    ),
+
+                    // move knot's centre to target point
+                    GetTranslationTransformationMatrix(
+                        targetPoint.X, targetPoint.Y, targetPoint.Z
+                    )
+                );
+
+                for (int i = 0; i < knot?.Count; i++)
+                {
+                    var clone = (IMarkGeometry)knot[i].Clone();
+                    clone.Transform(transform);
+                    pattern.Add(clone);
+                }
+            }
+            
+            if ((type & ExtentionType.EXTEND_END) == ExtentionType.EXTEND_END)
+            {
+                
+                var targetPoint = GetPointAtPosition(geometry, 1d);
+
+                // get angle of the ending tip of the geometry
+                var angle = CalculateAngle(
+                    GetPointAtPosition(geometry, (1d - 0.01d)), targetPoint
+                );
+
+                var transform = CombineTransformations(
+                    // apply rotation
+                    GetRotationTransformationMatrix(
+                        0, 0, angle
+                    ),
+
+                    // move knot's centre to target point
+                    GetTranslationTransformationMatrix(
+                        targetPoint.X, targetPoint.Y, targetPoint.Z
+                    )
+                );
+
+                for (int i = 0; i < knot?.Count; i++)
+                {
+                    var clone = (IMarkGeometry)knot[i].Clone();
+                    clone.Transform(transform);
+                    pattern.Add(clone);
+                }
+            }
+
+            return pattern;
         }
 
         /// <summary>
@@ -1008,9 +1166,6 @@ namespace MSolvLib.MarkGeometry
         /// <returns>Returns a point interpolated from the given QuadraticBezier parameters</returns>
         public static MarkGeometryPoint GetPointAtPosition(MarkGeometryPoint startPoint, MarkGeometryPoint endPoint, MarkGeometryPoint controlPoint, double position)
         {
-            // position must be between 0 - 1
-            position = position % 1.00277777;
-
             var a = startPoint * Math.Pow(1 - position, 2);
             var b = controlPoint * position * 2 * (1 - position);
             var c = endPoint * Math.Pow(position, 2);
@@ -1029,9 +1184,6 @@ namespace MSolvLib.MarkGeometry
         /// <returns>Returns a point interpolated from the given CubicBezier parameters</returns>
         public static MarkGeometryPoint GetPointAtPosition(MarkGeometryPoint startPoint, MarkGeometryPoint endPoint, MarkGeometryPoint controlPoint_1, MarkGeometryPoint controlPoint_2, double position)
         {
-            // position must be between 0 - 1
-            position = position % 1.00277777;
-
             var a = startPoint * Math.Pow(1 - position, 3);
             var b = controlPoint_1 * position * 3 * Math.Pow(1 - position, 2);
             var c = controlPoint_2 * Math.Pow(position, 2) * 3 * (1 - position);
@@ -1048,19 +1200,17 @@ namespace MSolvLib.MarkGeometry
         /// <returns>Returns a point interpolated from the given geometry</returns>
         public static MarkGeometryPoint GetPointAtPosition(IMarkGeometry geometry, double position)
         {
-            // position must be between 0 - 1
-            position = position % 1.00277777;
-
             if (geometry is MarkGeometryPoint point)
             {
                 return point;
             }
             else if (geometry is MarkGeometryLine line)
             {
+                // correct - to be tested
                 return new MarkGeometryPoint(
-                    line.StartPoint.X + ((line.EndPoint.X) * position),
-                    line.StartPoint.Y + ((line.EndPoint.Y) * position),
-                    line.StartPoint.Z + ((line.EndPoint.Z) * position)
+                    line.StartPoint.X + ((line.EndPoint.X - line.StartPoint.X) * position),
+                    line.StartPoint.Y + ((line.EndPoint.Y - line.StartPoint.Y) * position),
+                    line.StartPoint.Z + ((line.EndPoint.Z - line.StartPoint.Z) * position)
                 );
             }
             else if (geometry is MarkGeometryCircle circle)
@@ -1091,31 +1241,64 @@ namespace MSolvLib.MarkGeometry
             {
                 if (path.Points.Count <= 0)
                 {
-                    throw new Exception("Path must not be empty");
+                    return null; // does not exist
                 }
 
-                // optimize for last and first points
-                if (Math.Abs(position) <= 0.00001)
-                    return path.StartPoint;
-                else if (Math.Abs(position) >= 0.99995)
-                    return path.EndPoint;
-
-                double pathLength = path.Perimeter;
-                double lengthToPointPosition = position * pathLength;
-                double lengthSoFar = 0;
-
-                for (int i = 0; i < path.Points.Count-1; i++)
+                if (Math.Abs(position) <= 0.00001)  // optimize for last and first points
                 {
-                    double lengthOfSection = ABSMeasure(path.Points[i], path.Points[i+1]);
+                    return path.StartPoint;
+                }
+                else if (Math.Abs(1d - Math.Abs(position)) <= 0.00001)  // optimize for last and first points
+                {
+                    return path.EndPoint;
+                }
+                else if (position < 0d)  // extend start
+                {
+                    if (path.Points.Count < 2)
+                        return path.StartPoint;
 
-                    // if point is on this line
-                    if ((lengthSoFar + lengthOfSection) >= lengthToPointPosition)
+                    var refLine = new MarkGeometryLine(path.Points[0], path.Points[1]);
+                    var ratio = (position * path.Perimeter) / refLine.Length;
+
+                    return new MarkGeometryPoint(
+                        refLine.StartPoint.X + ((refLine.EndPoint.X - refLine.StartPoint.X) * ratio),
+                        refLine.StartPoint.Y + ((refLine.EndPoint.Y - refLine.StartPoint.Y) * ratio),
+                        refLine.StartPoint.Z + ((refLine.EndPoint.Z - refLine.StartPoint.Z) * ratio)
+                    );
+                }
+                else if (position > 1d)
+                {
+                    if (path.Points.Count < 2)
+                        return path.EndPoint;
+
+                    var refLine = new MarkGeometryLine(path.Points[path.Points.Count - 2], path.Points[path.Points.Count - 1]);
+                    var ratio = 1d + (((position - 1d) * path.Perimeter) / refLine.Length);
+
+                    return new MarkGeometryPoint(
+                        refLine.StartPoint.X + ((refLine.EndPoint.X - refLine.StartPoint.X) * ratio),
+                        refLine.StartPoint.Y + ((refLine.EndPoint.Y - refLine.StartPoint.Y) * ratio),
+                        refLine.StartPoint.Z + ((refLine.EndPoint.Z - refLine.StartPoint.Z) * ratio)
+                    );
+                }
+                else
+                {
+                    double pathLength = path.Perimeter;
+                    double lengthToPointPosition = Math.Abs(position * pathLength);
+                    double lengthSoFar = 0;
+
+                    for (int i = 0; i < path.Points.Count - 1; i++)
                     {
-                        double localPosition = (((lengthSoFar + lengthOfSection) - lengthToPointPosition) / lengthOfSection);
-                        return GetPointAtPosition(new MarkGeometryLine(path.Points[i], path.Points[i+1]), localPosition);
-                    }
+                        double lengthOfSection = ABSMeasure(path.Points[i], path.Points[i + 1]);
 
-                    lengthSoFar += lengthOfSection;
+                        // if point is on this line
+                        if ((lengthSoFar + lengthOfSection) >= lengthToPointPosition)
+                        {
+                            double localPosition = (((lengthSoFar + lengthOfSection) - lengthToPointPosition) / lengthOfSection);
+                            return GetPointAtPosition(new MarkGeometryLine(path.Points[i], path.Points[i + 1]), localPosition);
+                        }
+
+                        lengthSoFar += lengthOfSection;
+                    }
                 }
 
                 // return last point
@@ -1220,6 +1403,24 @@ namespace MSolvLib.MarkGeometry
         ///     Splits a given geometry into a List of points.
         /// </summary>
         /// <param name="geometry">The geometry</param>
+        /// <param name="howmany">The number of lines</param>
+        /// <returns>Returns a given geometry split into a list of lines</returns>
+        public static List<MarkGeometryPoint> ToPoints(IMarkGeometry geometry, int howmany)
+        {
+            var points = new List<MarkGeometryPoint>();
+
+            for (int i = 0; i <= howmany; i++)
+                points.Add(
+                       GetPointAtPosition(geometry, i / (double)howmany)
+                    );
+
+            return points;
+        }
+
+        /// <summary>
+        ///     Splits a given geometry into a List of points.
+        /// </summary>
+        /// <param name="geometry">The geometry</param>
         /// <param name="howmany">The number of points</param>
         /// <returns>Returns a given geometry split into a list of points</returns>
         public static List<MarkGeometryPoint> Explode(IMarkGeometry geometry, int howmany)
@@ -1234,69 +1435,6 @@ namespace MSolvLib.MarkGeometry
             }
 
             return points;
-        }
-
-        /// <summary>
-        ///     Extend a line by a given amount about it's centre
-        /// </summary>
-        /// <param name="line">The line to extend</param>
-        /// <param name="extension">The amount of extension to apply</param>
-        /// <returns></returns>
-        public static MarkGeometryLine Extend(MarkGeometryLine line, double extension)
-        {
-            var transform = CombineTransformations(
-                GetTranslationTransformationMatrix(
-                    -line.Extents.Centre.X,
-                    -line.Extents.Centre.Y,
-                    -line.Extents.Centre.Z
-                ),
-                GetRotationTransformationMatrix(
-                    0, 0, 
-                    -line.Angle
-                ),
-                GetScalingTransformationMatrix(
-                    (line.Length + extension) / line.Length,
-                    1, 1
-                ),
-                GetRotationTransformationMatrix(
-                    0, 0,
-                    line.Angle
-                ),
-                GetTranslationTransformationMatrix(
-                    line.Extents.Centre.X,
-                    line.Extents.Centre.Y,
-                    line.Extents.Centre.Z
-                )
-            );
-
-            line.Transform(transform);
-            return line;
-
-            //if (Math.Abs(line.Extents.Width) < 0.0001)
-            //{
-            //    return (MarkGeometryLine)Scale(
-            //        line,
-            //        1,
-            //        (line.Extents.Height + extension) / Math.Max(line.Extents.Height, double.Epsilon)
-            //    );
-            //}
-            //else if (Math.Abs(line.Extents.Height) < 0.0001)
-            //{
-            //    return (MarkGeometryLine)Scale(
-            //        line,
-            //        (line.Extents.Width + extension) / Math.Max(line.Extents.Width, double.Epsilon),
-            //        1
-            //    );
-            //}
-
-            //var xExtension = extension * Math.Cos(line.Angle);
-            //var yExtension = extension * Math.Sin(line.Angle);
-
-            //return (MarkGeometryLine)Scale(
-            //    line,
-            //    (line.Extents.Width + xExtension) / Math.Max(line.Extents.Width, double.Epsilon),
-            //    (line.Extents.Height + yExtension) / Math.Max(line.Extents.Height, double.Epsilon)
-            //);
         }
 
         ///// <summary>
@@ -2132,55 +2270,57 @@ namespace MSolvLib.MarkGeometry
         {
             var intersectingSegments = new List<MarkGeometryPath>();
 
-            var lines = new List<MarkGeometryLine>();
-            foreach (var line in ToLines(p1In.Points))
+            var path = new MarkGeometryPath()
             {
+                Fill = p1In.Fill,
+                Stroke = p1In.Stroke
+            };
+
+            for (int i = 0; i < p1In.Points.Count-1; i++)
+            {
+                var line = new MarkGeometryLine(p1In.Points[i], p1In.Points[i + 1]);
                 var intersections = CalculateIntersection2D(p2In, line).OrderBy(x => Measure2D(x, line.StartPoint)).ToList();
 
                 if (intersections.Count > 0)
                 {
-                    lines.Add(new MarkGeometryLine(line.StartPoint, intersections[0]));
-                    intersectingSegments.Add(
-                        new MarkGeometryPath(lines.ToArray())
+                    path.Add(line.StartPoint);
+                    path.Add((MarkGeometryPoint)intersections.First().Clone());
+                    
+                    if (path.Points.Count > 1)
+                        intersectingSegments.Add(path);
+
+                    for (int j = 0; j < intersections.Count - 1; j++)
+                    {
+                        // no need to clone the first as there is only one copy of it - faster to only clone what's needed
+                        path = new MarkGeometryPath(intersections[j], (MarkGeometryPoint)intersections[j + 1].Clone())
                         {
                             Fill = p1In.Fill,
                             Stroke = p1In.Stroke
-                        }
-                    );
+                        };
 
-                    lines.Clear();
-                    lines = ToLines(intersections.ToArray());
-
-                    foreach (var ln in lines)
-                    {
-                        intersectingSegments.Add(
-                            new MarkGeometryPath(ln)
-                            {
-                                Fill = p1In.Fill,
-                                Stroke = p1In.Stroke
-                            }
-                        );
+                        if (path.Points.Count > 1)
+                            intersectingSegments.Add(path);
                     }
 
-                    lines.Clear();
-                    lines.Add(new MarkGeometryLine(intersections[0], line.EndPoint));
-                }
-                else
-                {
-                    lines.Add(line);
-                }
-            }
-
-            if (lines.Count > 0)
-            {
-                intersectingSegments.Add(
-                    new MarkGeometryPath(lines.ToArray())
+                    // reset path
+                    path = new MarkGeometryPath()
                     {
                         Fill = p1In.Fill,
                         Stroke = p1In.Stroke
-                    }
-                );
+                    };
+
+                    path.Add(intersections.Last());
+                    path.Add(line.EndPoint);
+                }
+                else
+                {
+                    path.Add(line.StartPoint);
+                    path.Add(line.EndPoint);
+                }
             }
+
+            if (path.Points.Count > 1)
+                intersectingSegments.Add(path);
 
             return intersectingSegments;
         }
@@ -2358,7 +2498,7 @@ namespace MSolvLib.MarkGeometry
             {
                 var segA = SplitByIntersections(path, boundaryIn);
 
-                var expanded = new MarkGeometryRectangle(boundaryIn.CentrePoint, boundaryIn.Width + 2, boundaryIn.Height + 2);
+                var expanded = new MarkGeometryRectangle(boundaryIn.CentrePoint, boundaryIn.Width + 2d, boundaryIn.Height + 2d);
                 segA.RemoveAll(x => !IsWithin2D(x, expanded));
                 return segA.ConvertAll<IMarkGeometry>(x => x);
             }
@@ -2390,10 +2530,18 @@ namespace MSolvLib.MarkGeometry
             return null;
         }
 
-        public static Dictionary<MarkGeometryRectangle, List<IMarkGeometry>> GenerateTiles(IMarkGeometry[] geometriesIn, double tileWidth, double tileHeight, int padding = 5)
+        /// <summary>
+        /// Use method to tile a list of geometries.
+        /// </summary>
+        /// <param name="geometriesIn"></param>
+        /// <param name="tileWidth"></param>
+        /// <param name="tileHeight"></param>
+        /// <param name="padding"></param>
+        /// <param name="extension"></param>
+        /// <param name="knot"></param>
+        /// <returns></returns>
+        public static (MarkGeometryRectangle Boundary, List<IMarkGeometry> Pattern)[,] GenerateTiles(IList<IMarkGeometry> geometriesIn, double tileWidth, double tileHeight, double padding = 5d, double extension = 0d, List<IMarkGeometry> knot = null)
         {
-            var _tiles = new Dictionary<MarkGeometryRectangle, List<IMarkGeometry>>();
-
             var extents = CalculateExtents(geometriesIn.ToArray());
 
             if (tileWidth <= 3 || tileHeight <= 3)
@@ -2411,9 +2559,11 @@ namespace MSolvLib.MarkGeometry
             var _halfTileHeight = 0.5 * tileHeight;
             var _centre = extents.Centre - new MarkGeometryPoint(0.5 * (nColumns * tileWidth), 0.5 * (nRows * tileHeight));
 
-            for (int row = 0; row < nRows; row++)
+            var _tiles = new (MarkGeometryRectangle Boundary, List<IMarkGeometry> Pattern)[nRows, nColumns];
+
+            Parallel.For(0, nRows, (row) =>
             {
-                for (int col = 0; col < nColumns; col++)
+                Parallel.For(0, nColumns, (col) =>
                 {
                     var centrePoint = new MarkGeometryPoint(
                         (col * tileWidth) + _halfTileWidth,
@@ -2423,15 +2573,74 @@ namespace MSolvLib.MarkGeometry
                     Translate(centrePoint, _centre.X, _centre.Y);
 
                     var tileBoundary = new MarkGeometryRectangle(centrePoint, tileWidth, tileHeight);
-
-                    var tile = ClipGeometry(geometriesIn.ToArray(), tileBoundary);
-
-                    if (tile?.Count > 0)
+                    var boundariesAsLines = new List<MarkGeometryLine>() // only check intersection for right and bottom edges
                     {
-                        _tiles.Add(tileBoundary, tile);
+                        tileBoundary.RightEdge, tileBoundary.BottomEdge,
+                    };
+
+                    var clippedPattern = new List<IMarkGeometry>();
+
+                    foreach (var geometry in geometriesIn)
+                    {
+                        var clippedGeometries = ClipGeometry(geometry, tileBoundary);
+                        
+                        if (clippedGeometries != null)
+                        {
+                            foreach (var vector in clippedGeometries)
+                            {
+                                // add extended clone
+                                clippedPattern.Add(Extend((IMarkGeometry)vector.Clone(), extension));
+
+                                if (
+                                    knot != null
+                                )
+                                {
+                                    var startPoint = GetPointAtPosition(vector, 0d);
+                                    var endPoint = GetPointAtPosition(vector, 1d);
+
+                                    if (row != (nRows - 1)) // don't add knots to the "right most" and "bottom most" tiles
+                                    {
+                                        var knotStart = IsOnLine(startPoint, tileBoundary.TopEdge);
+                                        var knotEnd = IsOnLine(endPoint, tileBoundary.TopEdge);
+
+                                        if (knotStart || knotEnd)
+                                        {
+                                            var type = knotStart ? ExtentionType.EXTEND_START : ExtentionType.EXTEND_END;
+                                            type = knotEnd ? (type | ExtentionType.EXTEND_END) : type;
+
+                                            // add knot to clone
+                                            clippedPattern.AddRange(ApplyKnotToGeometry(vector, knot, type));
+                                        }
+                                    }
+
+                                    if (col != (nColumns - 1)) // don't add knots to the "right most" and "bottom most" tiles
+                                    {
+                                        var knotStart = IsOnLine(startPoint, tileBoundary.RightEdge);
+                                        var knotEnd = IsOnLine(endPoint, tileBoundary.RightEdge);
+
+                                        if (knotStart || knotEnd)
+                                        {
+                                            var type = knotStart ? ExtentionType.EXTEND_START : ExtentionType.EXTEND_END;
+                                            type = knotEnd ? (type | ExtentionType.EXTEND_END) : type;
+
+                                            // add knot to clone
+                                            clippedPattern.AddRange(ApplyKnotToGeometry(vector, knot, type));
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-            }
+
+                    if (clippedPattern.Count > 0)
+                    {
+                        lock(_tiles)
+                        {
+                            _tiles[row, col] = (tileBoundary, clippedPattern);
+                        }
+                    }
+                });
+            });
 
             return _tiles;
         }

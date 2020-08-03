@@ -1,4 +1,5 @@
-﻿using MSolvLib.Classes.MarkGeometries.Classes.Helpers;
+﻿using Emgu.CV.Dnn;
+using MSolvLib.Classes.MarkGeometries.Classes.Helpers;
 using MSolvLib.MarkGeometry;
 using SharpGLShader;
 using System;
@@ -41,8 +42,7 @@ namespace MRecipeStructure.Classes.MRecipeStructure.Utils
             if (recipe == null)
                 return;
 
-            foreach (var plate in recipe.Plates)
-                AddRecipeNode(recipe, plate);
+            recipe.BeginGetAllPlates((plate) => AddRecipeNode(recipe, plate));
         }
 
         public virtual void AddRecipeNode(MRecipe recipe, MRecipeBaseNode recipeNode)
@@ -50,15 +50,7 @@ namespace MRecipeStructure.Classes.MRecipeStructure.Utils
             if (recipe == null || recipeNode == null)
                 return;
 
-            var extents = new GeometryExtents<double>()
-            {
-                MinX = double.MaxValue,
-                MinY = double.MaxValue,
-                MinZ = double.MaxValue,
-                MaxX = double.MinValue,
-                MaxY = double.MinValue,
-                MaxZ = double.MinValue,
-            };
+            var extents = GeometryExtents<double>.CreateDefaultDouble();
 
             MRecipe.BeginGetAllLayers_Parallel(recipeNode, (layer) =>
             {
@@ -75,16 +67,16 @@ namespace MRecipeStructure.Classes.MRecipeStructure.Utils
             GenerateFiducialPattern(fiducialSize);
 
             // get node's transform
-            var baseTransform = recipeNode.TransformInfo.ToMatrix4x4();//MRecipe.GetAbsoluteTransform(recipe, recipeNode);
+            var parentsTransform = (recipeNode.Parent as MRecipeBaseNode)?.TransformInfo.ToMatrix4x4() ?? GeometricArithmeticModule.GetDefaultTransformationMatrix();
 
             // render fiducials in parent's reference frame
             foreach (var fiducial in recipeNode.Fiducials)
             {
                 var transform = GeometricArithmeticModule.CombineTransformations(
-                    baseTransform,
                     GeometricArithmeticModule.GetTranslationTransformationMatrix(
                         fiducial.X, fiducial.Y, fiducial.Z
-                    )
+                    ),
+                    parentsTransform
                 );
 
                 foreach (var geometry in _fiducialPattern)
@@ -130,15 +122,7 @@ namespace MRecipeStructure.Classes.MRecipeStructure.Utils
 
         private GeometryExtents<double> AddLayer(MRecipe recipe, MRecipeDeviceLayer layer)
         {
-            var extents = new GeometryExtents<double>()
-            {
-                MinX = double.MaxValue,
-                MinY = double.MaxValue,
-                MinZ = double.MaxValue,
-                MaxX = double.MinValue,
-                MaxY = double.MinValue,
-                MaxZ = double.MinValue,
-            };
+            var extents = GeometryExtents<double>.CreateDefaultDouble();
 
             // calculate layer's transform
             var transform = MRecipe.GetRelativeTransform(recipe, layer);

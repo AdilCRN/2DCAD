@@ -87,6 +87,25 @@ namespace MSolvLib.MarkGeometry
             Update();
         }
 
+        /// <summary>
+        /// Create and arc from three points.
+        /// </summary>
+        /// <param name="centre">The centre of the arc.</param>
+        /// <param name="p1">The starting point</param>
+        /// <param name="p2">The end point</param>
+        public MarkGeometryArc(MarkGeometryPoint centre, MarkGeometryPoint p1, MarkGeometryPoint p2)
+        {
+            Radius = GeometricArithmeticModule.ABSMeasure(centre, p1);
+            StartAngle = GeometricArithmeticModule.CalculateAngle(centre, p1);
+            EndAngle = GeometricArithmeticModule.CalculateAngle(centre, p2);
+            CentrePoint = centre;
+
+            StartPoint = p1;
+            EndPoint = p2;
+
+            Update();
+        }
+
         public MarkGeometryArc(MarkGeometryPoint center, double radius, double endAngle)
             : base()
         {

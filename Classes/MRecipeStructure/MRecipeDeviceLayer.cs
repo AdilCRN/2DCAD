@@ -1,8 +1,10 @@
 ﻿using MSolvLib.Classes.MarkGeometries.Classes.Helpers;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace MRecipeStructure.Classes.MRecipeStructure
 {
@@ -105,6 +107,58 @@ namespace MRecipeStructure.Classes.MRecipeStructure
             : this()
         {
             Tag = nameIn;
+        }
+
+        /// <summary>
+        /// Use to get all tiles.
+        /// </summary>
+        /// <param name="callback"></param>
+        public void BeginGetAllTiles(Action<MTileDescription> callback)
+        {
+            MArrayInfo.BeginGetAll(ArrayInfo, (index) =>
+            {
+                foreach (var td in TileDescriptions)
+                {
+                    var tile = (MTileDescription)td.Clone();
+                    tile.CentreX += index.XInfo.Offset;
+                    tile.CentreY += index.YInfo.Offset;
+                    callback(tile);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Use to get all tiles, when order does not matter.
+        /// </summary>
+        /// <param name="callback"></param>
+        public void BeginGetAllTiles_Parallel(Action<MTileDescription> callback)
+        {
+            MArrayInfo.BeginGetAll(ArrayInfo, (index) =>
+            {
+                Parallel.ForEach(TileDescriptions, (td) => 
+                {
+                    var tile = (MTileDescription)td.Clone();
+                    tile.CentreX += index.XInfo.Offset;
+                    tile.CentreY += index.YInfo.Offset;
+                    callback(tile);
+                });
+            });
+        }
+
+        /// <summary>
+        /// Use to get all tiles.
+        /// </summary>
+        /// <returns></returns>
+        public List<MTileDescription> Flatten()
+        {
+            var tiles = new List<MTileDescription>();
+
+            BeginGetAllTiles((tile) =>
+            {
+                tiles.Add(tile);
+            });
+
+            return tiles;
         }
 
         public void GenerateTileDescriptionsFromSettings(GeometryExtents<double> extentsIn)

@@ -118,6 +118,34 @@ namespace MRecipeStructure.Classes.MRecipeStructure
             Plates.Add(plate);
         }
 
+        public void BeginGetAllPlates(Action<MRecipePlate> callback)
+        {
+            foreach (var plate in Plates)
+            {
+                callback(plate);
+            }
+        }
+
+        public void BeginGetAllPlates_Parallel(Action<MRecipePlate> callback)
+        {
+            Parallel.ForEach(Plates, (plate) =>
+            {
+                callback(plate);
+            });
+        }
+
+        public List<MRecipePlate> Flatten()
+        {
+            var plates = new List<MRecipePlate>();
+
+            BeginGetAllPlates((plate) => 
+            {
+                plates.Add(plate);
+            });
+
+            return plates;
+        }
+
         public void UpdateParents()
         {
             foreach (var plate in Plates)
@@ -173,11 +201,11 @@ namespace MRecipeStructure.Classes.MRecipeStructure
                 recipe.UpdateParents();
 
             return GeometricArithmeticModule.CombineTransformations(
-                // add plate's transform
-                (device.Parent as MRecipeBaseNode).TransformInfo.ToMatrix4x4(),
-
                 // add device's transform
-                device.TransformInfo.ToMatrix4x4()
+                device.TransformInfo.ToMatrix4x4(),
+
+                // add plate's transform
+                (device.Parent as MRecipeBaseNode).TransformInfo.ToMatrix4x4()
             );
         }
 
@@ -187,14 +215,14 @@ namespace MRecipeStructure.Classes.MRecipeStructure
                 recipe.UpdateParents();
 
             return GeometricArithmeticModule.CombineTransformations(
-                // add plate's transform
-                (layer.Parent.Parent as MRecipeBaseNode).TransformInfo.ToMatrix4x4(),
+                // add layer's transform
+                layer.TransformInfo.ToMatrix4x4(),
 
                 // add device's transform
                 (layer.Parent as MRecipeBaseNode).TransformInfo.ToMatrix4x4(),
 
-                // add layer's transform
-                layer.TransformInfo.ToMatrix4x4()
+                // add plate's transform
+                (layer.Parent.Parent as MRecipeBaseNode).TransformInfo.ToMatrix4x4()
             );
         }
 
@@ -230,7 +258,7 @@ namespace MRecipeStructure.Classes.MRecipeStructure
                 nodeParent = nodeParent.Parent as MRecipeBaseNode;
             }
 
-            transformChain.Reverse();
+            transformChain.Add(parentNode.TransformInfo.ToMatrix4x4());
             return GeometricArithmeticModule.CombineTransformations(transformChain.ToArray());
         }
 
@@ -264,50 +292,10 @@ namespace MRecipeStructure.Classes.MRecipeStructure
         /// <param name="callbackIn">A callback to receive the recipe layers</param>
         public static void BeginGetAllLayers(MRecipe recipeIn, Action<MRecipeDeviceLayer> callbackIn)
         {
-            foreach (var plate in recipeIn.Plates)
+            recipeIn.BeginGetAllPlates((plate) =>
             {
-                MArrayInfo.BeginGetAll(plate.ArrayInfo, (platePositionInfo) =>
-                {
-                    // create a clone
-                    var _plate = (MRecipePlate)plate.Clone();
-
-                    // apply offset
-                    _plate.TransformInfo.OffsetX += platePositionInfo.XInfo.Offset;
-                    _plate.TransformInfo.OffsetY += platePositionInfo.YInfo.Offset;
-                    _plate.TransformInfo.OffsetZ += platePositionInfo.ZInfo.Offset;
-
-                    foreach (var device in _plate.Devices)
-                    {
-                        MArrayInfo.BeginGetAll(device.ArrayInfo, (devicePositionInfo) =>
-                        {
-
-                            // create a clone
-                            var _device = (MRecipeDevice)device.Clone();
-
-                            // apply offset
-                            _device.TransformInfo.OffsetX += devicePositionInfo.XInfo.Offset;
-                            _device.TransformInfo.OffsetY += devicePositionInfo.YInfo.Offset;
-                            _device.TransformInfo.OffsetZ += devicePositionInfo.ZInfo.Offset;
-
-                            foreach (var layer in _device.Layers)
-                            {
-                                MArrayInfo.BeginGetAll(layer.ArrayInfo, (layerPositionInfo) =>
-                                {
-                                    // create a clone
-                                    var _layer = (MRecipeDeviceLayer)layer.Clone();
-
-                                    // apply offset
-                                    _layer.TransformInfo.OffsetX += layerPositionInfo.XInfo.Offset;
-                                    _layer.TransformInfo.OffsetY += layerPositionInfo.YInfo.Offset;
-                                    _layer.TransformInfo.OffsetZ += layerPositionInfo.ZInfo.Offset;
-
-                                    callbackIn(_layer);
-                                });
-                            }
-                        });
-                    }
-                });
-            }
+                BeginGetAllLayers(plate, callbackIn);
+            });
         }
 
         /// <summary>
@@ -317,46 +305,9 @@ namespace MRecipeStructure.Classes.MRecipeStructure
         /// <param name="callbackIn">A callback to receive the recipe layers</param>
         public static void BeginGetAllLayers(MRecipePlate plateIn, Action<MRecipeDeviceLayer> callbackIn)
         {
-            MArrayInfo.BeginGetAll(plateIn.ArrayInfo, (platePositionInfo) =>
+            plateIn.BeginGetAllDevices((device) =>
             {
-                // create a clone
-                var _plate = (MRecipePlate)plateIn.Clone();
-
-                // apply offset
-                _plate.TransformInfo.OffsetX += platePositionInfo.XInfo.Offset;
-                _plate.TransformInfo.OffsetY += platePositionInfo.YInfo.Offset;
-                _plate.TransformInfo.OffsetZ += platePositionInfo.ZInfo.Offset;
-
-                foreach (var device in _plate.Devices)
-                {
-                    MArrayInfo.BeginGetAll(device.ArrayInfo, (devicePositionInfo) =>
-                    {
-
-                        // create a clone
-                        var _device = (MRecipeDevice)device.Clone();
-
-                        // apply offset
-                        _device.TransformInfo.OffsetX += devicePositionInfo.XInfo.Offset;
-                        _device.TransformInfo.OffsetY += devicePositionInfo.YInfo.Offset;
-                        _device.TransformInfo.OffsetZ += devicePositionInfo.ZInfo.Offset;
-
-                        foreach (var layer in _device.Layers)
-                        {
-                            MArrayInfo.BeginGetAll(layer.ArrayInfo, (layerPositionInfo) =>
-                            {
-                                // create a clone
-                                var _layer = (MRecipeDeviceLayer)layer.Clone();
-
-                                // apply offset
-                                _layer.TransformInfo.OffsetX += layerPositionInfo.XInfo.Offset;
-                                _layer.TransformInfo.OffsetY += layerPositionInfo.YInfo.Offset;
-                                _layer.TransformInfo.OffsetZ += layerPositionInfo.ZInfo.Offset;
-
-                                callbackIn(_layer);
-                            });
-                        }
-                    });
-                }
+                BeginGetAllLayers(device, callbackIn);
             });
         }
 
@@ -367,53 +318,9 @@ namespace MRecipeStructure.Classes.MRecipeStructure
         /// <param name="callbackIn">A callback to receive the recipe layers</param>
         public static void BeginGetAllLayers(MRecipeDevice deviceIn, Action<MRecipeDeviceLayer> callbackIn)
         {
-            MArrayInfo.BeginGetAll(deviceIn.ArrayInfo, (devicePositionInfo) =>
+            deviceIn.BeginGetAllLayers((layer) =>
             {
-
-                // create a clone
-                var _device = (MRecipeDevice)deviceIn.Clone();
-
-                // apply offset
-                _device.TransformInfo.OffsetX += devicePositionInfo.XInfo.Offset;
-                _device.TransformInfo.OffsetY += devicePositionInfo.YInfo.Offset;
-                _device.TransformInfo.OffsetZ += devicePositionInfo.ZInfo.Offset;
-
-                foreach (var layer in _device.Layers)
-                {
-                    MArrayInfo.BeginGetAll(layer.ArrayInfo, (layerPositionInfo) =>
-                    {
-                        // create a clone
-                        var _layer = (MRecipeDeviceLayer)layer.Clone();
-
-                        // apply offset
-                        _layer.TransformInfo.OffsetX += layerPositionInfo.XInfo.Offset;
-                        _layer.TransformInfo.OffsetY += layerPositionInfo.YInfo.Offset;
-                        _layer.TransformInfo.OffsetZ += layerPositionInfo.ZInfo.Offset;
-
-                        callbackIn(_layer);
-                    });
-                }
-            });
-        }
-
-        /// <summary>
-        ///     Returns all layers in the recipe layer auto generating based on array its info.
-        /// </summary>
-        /// <param name="layerIn">The layer</param>
-        /// <param name="callbackIn">A callback to receive the recipe layers</param>
-        public static void BeginGetAllLayers(MRecipeDeviceLayer layerIn, Action<MRecipeDeviceLayer> callbackIn)
-        {
-            MArrayInfo.BeginGetAll(layerIn.ArrayInfo, (layerPositionInfo) =>
-            {
-                // create a clone
-                var _layer = (MRecipeDeviceLayer)layerIn.Clone();
-
-                // apply offset
-                _layer.TransformInfo.OffsetX += layerPositionInfo.XInfo.Offset;
-                _layer.TransformInfo.OffsetY += layerPositionInfo.YInfo.Offset;
-                _layer.TransformInfo.OffsetZ += layerPositionInfo.ZInfo.Offset;
-
-                callbackIn(_layer);
+                callbackIn(layer);
             });
         }
 
@@ -434,7 +341,7 @@ namespace MRecipeStructure.Classes.MRecipeStructure
             }
             else if (nodeIn is MRecipeDeviceLayer layer)
             {
-                BeginGetAllLayers(layer, callbackIn);
+                callbackIn(layer);
             }
         }
 
@@ -446,49 +353,9 @@ namespace MRecipeStructure.Classes.MRecipeStructure
         /// <param name="callbackIn">A callback to receive the recipe layers</param>
         public static void BeginGetAllLayers_Parallel(MRecipe recipeIn, Action<MRecipeDeviceLayer> callbackIn)
         {
-            Parallel.ForEach(recipeIn.Plates, (plate) =>
+            recipeIn.BeginGetAllPlates_Parallel((plate) =>
             {
-                MArrayInfo.BeginGetAll_Parallel(plate.ArrayInfo, (platePositionInfo) =>
-                {
-                    // create a clone
-                    var _plate = (MRecipePlate)plate.Clone();
-
-                    // apply offset
-                    _plate.TransformInfo.OffsetX += platePositionInfo.XInfo.Offset;
-                    _plate.TransformInfo.OffsetY += platePositionInfo.YInfo.Offset;
-                    _plate.TransformInfo.OffsetZ += platePositionInfo.ZInfo.Offset;
-
-                    Parallel.ForEach(_plate.Devices, (device) =>
-                    {
-                        MArrayInfo.BeginGetAll_Parallel(device.ArrayInfo, (devicePositionInfo) =>
-                        {
-
-                            // create a clone
-                            var _device = (MRecipeDevice)device.Clone();
-
-                            // apply offset
-                            _device.TransformInfo.OffsetX += devicePositionInfo.XInfo.Offset;
-                            _device.TransformInfo.OffsetY += devicePositionInfo.YInfo.Offset;
-                            _device.TransformInfo.OffsetZ += devicePositionInfo.ZInfo.Offset;
-
-                            Parallel.ForEach(_device.Layers, (layer) =>
-                            {
-                                MArrayInfo.BeginGetAll_Parallel(layer.ArrayInfo, (layerPositionInfo) =>
-                                {
-                                    // create a clone
-                                    var _layer = (MRecipeDeviceLayer)layer.Clone();
-
-                                    // apply offset
-                                    _layer.TransformInfo.OffsetX += layerPositionInfo.XInfo.Offset;
-                                    _layer.TransformInfo.OffsetY += layerPositionInfo.YInfo.Offset;
-                                    _layer.TransformInfo.OffsetZ += layerPositionInfo.ZInfo.Offset;
-
-                                    callbackIn(_layer);
-                                });
-                            });
-                        });
-                    });
-                });
+                BeginGetAllLayers_Parallel(plate, callbackIn);
             });
         }
 
@@ -500,46 +367,9 @@ namespace MRecipeStructure.Classes.MRecipeStructure
         /// <param name="callbackIn">A callback to receive the recipe layers</param>
         public static void BeginGetAllLayers_Parallel(MRecipePlate plateIn, Action<MRecipeDeviceLayer> callbackIn)
         {
-            MArrayInfo.BeginGetAll_Parallel(plateIn.ArrayInfo, (platePositionInfo) =>
+            plateIn.BeginGetAllDevices_Parallel((device) =>
             {
-                // create a clone
-                var _plate = (MRecipePlate)plateIn.Clone();
-
-                // apply offset
-                _plate.TransformInfo.OffsetX += platePositionInfo.XInfo.Offset;
-                _plate.TransformInfo.OffsetY += platePositionInfo.YInfo.Offset;
-                _plate.TransformInfo.OffsetZ += platePositionInfo.ZInfo.Offset;
-
-                Parallel.ForEach(_plate.Devices, (device) =>
-                {
-                    MArrayInfo.BeginGetAll_Parallel(device.ArrayInfo, (devicePositionInfo) =>
-                    {
-
-                        // create a clone
-                        var _device = (MRecipeDevice)device.Clone();
-
-                        // apply offset
-                        _device.TransformInfo.OffsetX += devicePositionInfo.XInfo.Offset;
-                        _device.TransformInfo.OffsetY += devicePositionInfo.YInfo.Offset;
-                        _device.TransformInfo.OffsetZ += devicePositionInfo.ZInfo.Offset;
-
-                        Parallel.ForEach(_device.Layers, (layer) =>
-                        {
-                            MArrayInfo.BeginGetAll_Parallel(layer.ArrayInfo, (layerPositionInfo) =>
-                            {
-                                // create a clone
-                                var _layer = (MRecipeDeviceLayer)layer.Clone();
-
-                                // apply offset
-                                _layer.TransformInfo.OffsetX += layerPositionInfo.XInfo.Offset;
-                                _layer.TransformInfo.OffsetY += layerPositionInfo.YInfo.Offset;
-                                _layer.TransformInfo.OffsetZ += layerPositionInfo.ZInfo.Offset;
-
-                                callbackIn(_layer);
-                            });
-                        });
-                    });
-                });
+                BeginGetAllLayers_Parallel(device, callbackIn);
             });
         }
 
@@ -551,54 +381,9 @@ namespace MRecipeStructure.Classes.MRecipeStructure
         /// <param name="callbackIn">A callback to receive the recipe layers</param>
         public static void BeginGetAllLayers_Parallel(MRecipeDevice deviceIn, Action<MRecipeDeviceLayer> callbackIn)
         {
-            MArrayInfo.BeginGetAll_Parallel(deviceIn.ArrayInfo, (devicePositionInfo) =>
+            deviceIn.BeginGetAllLayers_Parallel((layer) =>
             {
-
-                // create a clone
-                var _device = (MRecipeDevice)deviceIn.Clone();
-
-                // apply offset
-                _device.TransformInfo.OffsetX += devicePositionInfo.XInfo.Offset;
-                _device.TransformInfo.OffsetY += devicePositionInfo.YInfo.Offset;
-                _device.TransformInfo.OffsetZ += devicePositionInfo.ZInfo.Offset;
-
-                Parallel.ForEach(_device.Layers, (layer) =>
-                {
-                    MArrayInfo.BeginGetAll_Parallel(layer.ArrayInfo, (layerPositionInfo) =>
-                    {
-                        // create a clone
-                        var _layer = (MRecipeDeviceLayer)layer.Clone();
-
-                        // apply offset
-                        _layer.TransformInfo.OffsetX += layerPositionInfo.XInfo.Offset;
-                        _layer.TransformInfo.OffsetY += layerPositionInfo.YInfo.Offset;
-                        _layer.TransformInfo.OffsetZ += layerPositionInfo.ZInfo.Offset;
-
-                        callbackIn(_layer);
-                    });
-                });
-            });
-        }
-
-        /// <summary>
-        ///     Returns all layers in the recipe layer auto generating based on its array info.
-        ///     Sacrifice order/arrangement for speed.
-        /// </summary>
-        /// <param name="layerIn">The layer</param>
-        /// <param name="callbackIn">A callback to receive the recipe layers</param>
-        public static void BeginGetAllLayers_Parallel(MRecipeDeviceLayer layerIn, Action<MRecipeDeviceLayer> callbackIn)
-        {
-            MArrayInfo.BeginGetAll_Parallel(layerIn.ArrayInfo, (layerPositionInfo) =>
-            {
-                // create a clone
-                var _layer = (MRecipeDeviceLayer)layerIn.Clone();
-
-                // apply offset
-                _layer.TransformInfo.OffsetX += layerPositionInfo.XInfo.Offset;
-                _layer.TransformInfo.OffsetY += layerPositionInfo.YInfo.Offset;
-                _layer.TransformInfo.OffsetZ += layerPositionInfo.ZInfo.Offset;
-
-                callbackIn(_layer);
+                callbackIn(layer);
             });
         }
 
@@ -620,7 +405,7 @@ namespace MRecipeStructure.Classes.MRecipeStructure
             }
             else if (nodeIn is MRecipeDeviceLayer layer)
             {
-                BeginGetAllLayers_Parallel(layer, callbackIn);
+                callbackIn(layer);
             }
         }
 

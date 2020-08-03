@@ -21,13 +21,11 @@ namespace MSolvLib.MarkGeometry
         {
             get
             {
-                return GeometricArithmeticModule.CalculatePerimeter(this);
+                return length;
             }
             set
             {
                 length = value;
-                Area = length * Double.Epsilon;
-                Perimeter = 2 * (length + Double.Epsilon);
             }
         }
 
@@ -188,6 +186,10 @@ namespace MSolvLib.MarkGeometry
 
             Extents.MinZ = Math.Min(StartPoint.Z, EndPoint.Z);
             Extents.MaxZ = Math.Max(StartPoint.Z, EndPoint.Z);
+
+            Length = GeometricArithmeticModule.CalculatePerimeter(this);
+            Perimeter = Length; // don't use perimeter of a rectangle {2 * (Length + Double.Epsilon)} - the perimeter of a line should be its length;
+            Area = Length * Double.Epsilon;
         }
 
         public override void Transform(Matrix4x4 transformationMatrixIn)

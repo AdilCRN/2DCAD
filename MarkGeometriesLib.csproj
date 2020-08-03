@@ -142,8 +142,10 @@
     <Compile Include="Classes\DXFParser\DXFParser.cs" />
     <Compile Include="Classes\Generics\AlignmentCalculationWrapper.cs" />
     <Compile Include="Classes\Generics\CachedLoader.cs" />
+    <Compile Include="Classes\Generics\GeneratePythonWrapper.cs" />
     <Compile Include="Classes\Generics\MAlignmentCalculator.cs" />
     <Compile Include="Classes\Generics\TerminableTaskExecutor.cs" />
+    <Compile Include="Classes\Generics\DataMarshalHelper.cs" />
     <Compile Include="Classes\GeometryToImageConverter.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Geometries\IMarkGeometry.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Geometries\IMarkGeometryWrapper.cs" />
@@ -161,6 +163,7 @@
     <Compile Include="Classes\MarkGeometries\Classes\Geometries\MarkGeometryTree.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\ConnectionType.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\DXFParser.cs" />
+    <Compile Include="Classes\MarkGeometries\Classes\Helpers\ExtentionType.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\Extents.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\GeometricArithmeticModule.cs" />
     <Compile Include="Classes\MarkGeometries\Classes\Helpers\GeometricEulerOrientation.cs" />

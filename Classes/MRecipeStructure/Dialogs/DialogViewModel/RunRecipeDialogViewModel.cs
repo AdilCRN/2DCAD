@@ -1,4 +1,5 @@
-﻿using MarkGeometriesLib.Classes.Generics;
+﻿using Emgu.CV.Stitching;
+using MarkGeometriesLib.Classes.Generics;
 using MRecipeStructure.Classes.MRecipeStructure;
 using MRecipeStructure.Dialogs.ProcessRecipeUtils;
 using MSolvLib;
@@ -9,11 +10,13 @@ using SharpGLShader;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows.Documents;
 using System.Windows.Media;
 
@@ -39,6 +42,10 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
         // for finding fiducials
         private FiducialFinder _fiducialFinder;
 
+        // for timing the process
+        private Stopwatch _processStopWatch = new Stopwatch();
+        private System.Timers.Timer _processTimer = new System.Timers.Timer(1000);
+
         #endregion
 
         #region Section: Public Properties
@@ -60,6 +67,14 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
             { 
                 _processProgress = value;
                 NotifyPropertyChanged();
+            }
+        }
+
+        public bool CanExecuteRecipe
+        {
+            get
+            {
+                return (!(IsLoading || IsRunning)) && (RecipeVm != null);
             }
         }
 
@@ -104,6 +119,11 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
                 NotifyPropertyChanged();
                 NotifyPropertyChanged(nameof(IsNotLoading));
                 NotifyPropertyChanged(nameof(IsNotRunning));
+
+                if (IsRunning)
+                    _processStopWatch.Start();
+                else
+                    _processStopWatch.Stop();
             }
         }
 
@@ -116,6 +136,11 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
             { 
                 _isPaused = value;
                 NotifyPropertyChanged();
+
+                if (IsPaused)
+                    _processStopWatch.Stop();
+                else
+                    _processStopWatch.Start();
             }
         }
 
@@ -191,6 +216,15 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
             }
         }
 
+        public string CurrentProcessElapsedTime
+        {
+            get
+            {
+                var time = _processStopWatch.Elapsed;
+                return $"{time.Hours:00}:{time.Minutes:00}:{time.Seconds:00}";
+            }
+        }
+
 
         private MRecipe _recipeVm;
 
@@ -253,6 +287,8 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
             _dxfCachedLoader = new CachedLoader<List<IMarkGeometry>>();
             RecipeInfo = new ObservableCollection<RecipeProcessEntityInfo>();
             _fiducialFinder = new FiducialFinder();
+
+            _processTimer.Elapsed += _processTimer_Elapsed;
 
             IsPaused = false;
             IsRunning = false;
@@ -332,6 +368,11 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
             );
         }
 
+        private void _processTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            NotifyPropertyChanged(nameof(CurrentProcessElapsedTime));
+        }
+
         #endregion
 
         #region Section: Class Methods
@@ -343,6 +384,10 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
                 {
                     try
                     {
+                        // reset timers
+                        _processStopWatch.Reset();
+                        _processTimer.Start();
+
                         IsRunning = true;
                         ClearLogs();
                         PrintLog("Starting process...");
@@ -353,11 +398,13 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
                         double progressIncrement = (1.0 / RecipeInfo.Count) * 100d;
 
                         // reset all
-                        _fiducialFinder.Reset();
                         foreach (var info in RecipeInfo)
                         {
                             info.State = EntityState.WAITING;
                         }
+
+                        // run pre recipe routine
+                        await _model.RunPreExecutionTasks(ctIn);
 
                         int counter = 0;
                         foreach (var info in RecipeInfo)
@@ -371,17 +418,17 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
 
                             // process layer
                             if (!await _model.ProcessLayer(
+                                RecipeVm,
                                 info,
                                 FetchDXF(info.Layer),
                                 FetchDXFParameters(info.Layer),
-                                async (taskHandler) => await _fiducialFinder.GetAbsoluteTransformFromStageOrigin(taskHandler, _model.GetCam2Beam(), RecipeVm, info.Layer, ctIn),
                                 () => IsPaused,
                                 (message) => PrintLog(message),
                                 (message) => PrintError(message),
                                 ctIn
                             ))
                             {
-                                throw new Exception($"Failed while processing layer {counter}");
+                                throw new Exception($"Failed while processing layer: {counter}");
                             }
 
                             ctIn.ThrowIfCancellationRequested();
@@ -400,6 +447,16 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
                     }
                     finally
                     {
+                        try
+                        {
+                            await _model.RunPostExecutionTasks(ctIn);
+                        }
+                        catch (Exception e2)
+                        {
+                            PrintError("Failed to run pre-recipe tasks");
+                            PrintLog(e2.Message);
+                        }
+
                         IsRunning = false;
                     }
                 }
@@ -529,9 +586,17 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
 
         public void UpdateMousePosition()
         {
+            // convert cad to stage space
+            var stagePosition = _model.GetTargetPositionOnStage(
+                MShader.Mouse.X, MShader.Mouse.Y
+            );
+
             // update mouse to reflect the reference point
-            MouseX = MShader.Mouse.X;
-            MouseY = MShader.Mouse.Y;
+            MouseX = stagePosition.X;
+            MouseY = stagePosition.Y;
+
+            //MouseX = MShader.Mouse.X;
+            //MouseY = MShader.Mouse.Y;
         }
 
         public void UpdateLogsRichTextBox(System.Windows.Controls.RichTextBox richTextBoxIn)
@@ -624,7 +689,7 @@ namespace MRecipeStructure.Dialogs.DialogViewModel
                     layer.TargetProcessMode
                 );
 
-            return _model.GetProcessConfigurationTaskHandler(null);
+            return _model.GetProcessConfigurationTaskHandler((string)null);
         }
 
         public TimeSpan EstimateProcessTime(MRecipeDeviceLayer layer)
