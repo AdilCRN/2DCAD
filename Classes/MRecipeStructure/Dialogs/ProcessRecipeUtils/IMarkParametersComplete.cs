@@ -2,7 +2,7 @@
 
 namespace MRecipeStructure.Dialogs.ProcessRecipeUtils
 {
-    public interface IMarkParametersComplete : ISimpleMotionParams, IScannerMarkParametersBase, IScannerMarkParamDelayModes, IScannerMarkParamExtTrig, IScannerMarkParamSkyWriting, ISimpleMarkParams
+    public interface IMarkParametersComplete : IProcessParameterBase, ISimpleMotionParams, IScannerMarkParametersBase, IScannerMarkParamDelayModes, IScannerMarkParamExtTrig, IScannerMarkParamSkyWriting, ISimpleMarkParams
     {
     }
 }

@@ -77,7 +77,7 @@ namespace MRecipeStructure.Dialogs.ProcessRecipeUtils
             MRecipe recipe,
             RecipeProcessEntityInfo entityInfo,
             List<IMarkGeometry> layerPattern,
-            IMarkParametersComplete markParameters,
+            IProcessParameterBase markParameters,
             Func<bool> shouldPause,
             Action<string> logInfo,
             Action<string> logError,

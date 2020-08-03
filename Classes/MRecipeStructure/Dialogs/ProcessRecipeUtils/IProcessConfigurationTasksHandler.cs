@@ -1,7 +1,7 @@
-﻿using MSolvLib.Classes;
-using MSolvLib.Classes.Alignment;
+﻿using MSolvLib.Classes.Alignment;
 using MSolvLib.Classes.ProcessConfiguration;
 using MSolvLib.DialogForms;
+using MSolvLib.Interfaces;
 using MSolvLib.MarkGeometry;
 using System.Collections.Generic;
 using System.Threading;
@@ -36,6 +36,6 @@ namespace MRecipeStructure.Dialogs.ProcessRecipeUtils
         Task<((double X, double Y) Position, bool Found)> TakeMeasurement();
 
         // processing
-        Task<bool> MarkPattern(List<IMarkGeometry> vectors, IMarkParametersComplete parametersIn, PanelXYThetaScale alignment, IProcessConfiguration procConfig, CancellationToken ct, bool dontApplyCamToBeam, object objectIn = null);
+        Task<bool> MarkPattern(List<IMarkGeometry> vectors, IProcessParameterBase parametersIn, PanelXYThetaScale alignment, IProcessConfiguration procConfig, CancellationToken ct, bool dontApplyCamToBeam, object objectIn = null);
     }
 }
