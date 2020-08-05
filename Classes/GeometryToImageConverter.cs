@@ -9,6 +9,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace MarkGeometriesLib.Classes
 {
@@ -294,6 +296,124 @@ namespace MarkGeometriesLib.Classes
             return bitmapOut;
         }
 
+        private static Bitmap Rotate4Bpp_Parallel(Bitmap bitmapIn, double angleDeg, byte bgColor = 8)
+        {
+            if (bitmapIn.PixelFormat != PixelFormat.Format4bppIndexed)
+                return null;
+
+            var rect = new MarkGeometryRectangle(bitmapIn.Width, bitmapIn.Height);
+            GeometricArithmeticModule.Rotate(rect, 0, 0, GeometricArithmeticModule.ToRadians(angleDeg));
+            var bitmapOut = new Bitmap((int)Math.Ceiling(rect.Extents.Width), (int)Math.Ceiling(rect.Extents.Height), PixelFormat.Format4bppIndexed);
+
+            var bmpInImageData = bitmapIn.LockBits(new Rectangle(0, 0, bitmapIn.Width, bitmapIn.Height), ImageLockMode.ReadOnly, bitmapIn.PixelFormat);
+            long bmpInStride = bmpInImageData.Stride;
+
+            var bmpOutImageData = bitmapOut.LockBits(new Rectangle(0, 0, bitmapOut.Width, bitmapOut.Height), ImageLockMode.ReadWrite, bitmapIn.PixelFormat);
+            long bmpOutStride = bmpOutImageData.Stride;
+
+            var bmpInPtr = bmpInImageData.Scan0;
+            var bmpOutPtr = bmpOutImageData.Scan0;
+
+            long bmpInWidth = bitmapIn.Width;
+            long bmpInHeight = bitmapIn.Height;
+            long bmpOutHeight = bitmapOut.Height;
+            long bmpOutHalfWidth = bitmapOut.Width / 2;
+            int bmpInBytes = (int)(Math.Abs(bmpInStride) * bmpInHeight);
+            int bmpOutBytes = (int)(Math.Abs(bmpOutStride) * bmpOutHeight);
+
+            double cxIn = 0.5 * bmpInImageData.Width;
+            double cyIn = 0.5 * bmpInImageData.Height;
+            double cxOut = 0.5 * bmpOutImageData.Width;
+            double cyOut = 0.5 * bmpOutImageData.Height;
+            double sa = Math.Sin(GeometricArithmeticModule.ToRadians(-angleDeg));
+            double ca = Math.Cos(GeometricArithmeticModule.ToRadians(-angleDeg));
+
+            // mirror 4bpp bg-color accross both halves of the byte;
+            bgColor = Math.Min(bgColor, (byte)0x0F);
+            bgColor = (byte)((bgColor | 0xF0) & ((bgColor << 4) | 0x0F));
+
+            // create buffers for in and out images
+            var bmpInValues = new byte[bmpInBytes];
+            var bmpOutValues = new byte[bmpOutBytes];
+
+            // copy bmp in to buffer in
+            Marshal.Copy(bmpInPtr, bmpInValues, 0, bmpInBytes);
+
+            #region Section: Parallel Version
+
+            Parallel.For(0, bmpOutHeight, (row) =>
+            {
+                Parallel.For(0, bmpOutHalfWidth, (col) =>
+                {
+                    long _col, _row, outIndex, inIndex;
+
+                    // pixel a
+                    _col = (long)(((((col * 2) - cxOut) * ca) - ((row - cyOut) * sa)) + cxIn);
+                    _row = (long)((((row - cyOut) * ca) + (((col * 2) - cxOut) * sa)) + cyIn);
+                    outIndex = (row * bmpOutStride) + col;
+                    inIndex = (_row * bmpInStride) + (_col / 2);
+
+                    // check row and column is within in image
+                    if (
+                        _col < 0 ||
+                        _col >= bmpInWidth ||
+                        _row < 0 ||
+                        _row >= bmpInHeight
+                    )
+                    {
+                        bmpOutValues[outIndex] = (byte)((bmpOutValues[outIndex] | 0xF0) & (0x0F | bgColor));
+                    }
+                    else if (_col % 2 == 0)
+                    {
+                        // read the high byte
+                        bmpOutValues[outIndex] = (byte)((bmpOutValues[outIndex] | 0xF0) & (0x0F | bmpInValues[inIndex]));
+                    }
+                    else
+                    {
+                        // read the low byte
+                        bmpOutValues[outIndex] = (byte)((bmpOutValues[outIndex] | 0xF0) & (0x0F | (bmpInValues[inIndex] << 4)));
+                    }
+
+                    // pixel b
+                    _col = (long)((((((col * 2) + 1) - cxOut) * ca) - ((row - cyOut) * sa)) + cxIn);
+                    _row = (long)((((row - cyOut) * ca) + ((((col * 2) + 1) - cxOut) * sa)) + cyIn);
+                    inIndex = (_row * bmpInStride) + (_col / 2);
+
+                    if (
+                        _col < 0 ||
+                        _col >= bmpInWidth ||
+                        _row < 0 ||
+                        _row >= bmpInHeight
+                    )
+                    {
+                        bmpOutValues[outIndex] = (byte)((bmpOutValues[outIndex] | 0x0F) & (0xF0 | bgColor));
+                    }
+                    else if (_col % 2 == 0)
+                    {
+                        // read the high byte
+                        bmpOutValues[outIndex] = (byte)((bmpOutValues[outIndex] | 0x0F) & (0xF0 | (bmpInValues[inIndex] >> 4)));
+                    }
+                    else
+                    {
+                        // read the low byte
+                        bmpOutValues[outIndex] = (byte)((bmpOutValues[outIndex] | 0x0F) & (0xF0 | bmpInValues[inIndex]));
+                    }
+                });
+            });
+
+            #endregion
+
+            // copy out buffer to bmp out
+            Marshal.Copy(bmpOutValues, 0, bmpOutPtr, bmpOutBytes);
+
+            // unlock bits
+            bitmapIn.UnlockBits(bmpInImageData);
+            bitmapOut.UnlockBits(bmpOutImageData);
+            bitmapOut.SetResolution(bitmapIn.HorizontalResolution, bitmapIn.VerticalResolution);
+
+            return bitmapOut;
+        }
+
         //private static long GetRotatedIndex(int rowIn, int columnIn, double imgHalfWidth, double imgHalfHeight, double ca, double sa, int imgStrideOut)
         //{
         //    // translate to origin
@@ -466,6 +586,14 @@ namespace MarkGeometriesLib.Classes
         {
             var bmpIn = new Bitmap(imagePathIn);
             var bmpOut = Rotate4Bpp(bmpIn, angle);
+            SaveAsBitmap(imagePathOut, bmpOut, bmpOut.HorizontalResolution, bmpOut.VerticalResolution, OptimisationSetting.HighestQuality);
+            return (File.Exists(imagePathOut), bmpOut.Width, bmpOut.Height);
+        }
+
+        public static (bool Success, int Width, int Height) RotateImage4BppV2_Parallel(string imagePathIn, string imagePathOut, double angle)
+        {
+            var bmpIn = new Bitmap(imagePathIn);
+            var bmpOut = Rotate4Bpp_Parallel(bmpIn, angle);
             SaveAsBitmap(imagePathOut, bmpOut, bmpOut.HorizontalResolution, bmpOut.VerticalResolution, OptimisationSetting.HighestQuality);
             return (File.Exists(imagePathOut), bmpOut.Width, bmpOut.Height);
         }
