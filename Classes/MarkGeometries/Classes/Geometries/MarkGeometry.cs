@@ -70,9 +70,10 @@ namespace MSolvLib.MarkGeometry
         {
             Stroke = input.Stroke == null ? null : (Color?) ColorTranslator.FromHtml(ColorTranslator.ToHtml((Color)input.Stroke));
             Fill = input.Fill == null ? null : (Color?)ColorTranslator.FromHtml(ColorTranslator.ToHtml((Color)input.Fill));
+            LayerName = (string)input.LayerName.Clone();
             Transparency = input.Transparency;
-            Area = input.Area + 0;
-            Perimeter = input.Perimeter + 0;
+            Perimeter = input.Perimeter;
+            Area = input.Area;
         }
 
         public abstract void Transform(Matrix4x4 transformationMatrixIn);

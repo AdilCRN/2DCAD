@@ -124,6 +124,46 @@ namespace MarkGeometriesLib.Classes
             bitmapIn.UnlockBits(bmpImageData);
         }
 
+        private static void FastCopy4Bpp_Parallel(Image<Gray, Byte> image, Bitmap bitmapIn)
+        {
+            var imgMIpl = image.MIplImage;
+            long imgStride = imgMIpl.WidthStep;
+
+            var bmpImageData = bitmapIn.LockBits(new Rectangle(0, 0, image.Width, image.Height), ImageLockMode.WriteOnly, bitmapIn.PixelFormat);
+            var bmpStride = bmpImageData.Stride;
+
+            int _bmpSW = bitmapIn.Width / 2;
+            long bmpInHeight = image.Height;
+            long bmpOutHeight = bitmapIn.Height;
+            long bmpOutHalfWidth = bitmapIn.Width / 2;
+            int bmpInBytes = (int)(Math.Abs(imgStride) * bmpInHeight);
+            int bmpOutBytes = (int)(Math.Abs(bmpStride) * bmpOutHeight);
+
+            // create buffers for in and out images
+            var bmpInValues = new byte[bmpInBytes];
+            var bmpOutValues = new byte[bmpOutBytes];
+
+            var bmpInPtr = imgMIpl.ImageData;
+            var bmpOutPtr = bmpImageData.Scan0;
+
+            // copy bmp in to buffer in
+            Marshal.Copy(bmpInPtr, bmpInValues, 0, bmpInBytes);
+
+            Parallel.For(0, bmpOutHeight, (row) =>
+            {
+                Parallel.For(0, bmpOutHalfWidth, (col) =>
+                {
+                    var pxIndex = (row * imgStride) + (col * 2);
+                    bmpOutValues[(row * bmpStride) + col] = compress(bmpInValues[pxIndex], bmpInValues[pxIndex + 1]);
+                });
+            });
+
+            // copy out buffer to bmp out
+            Marshal.Copy(bmpOutValues, 0, bmpOutPtr, bmpOutBytes);
+
+            bitmapIn.UnlockBits(bmpImageData);
+        }
+
         private static Bitmap Rotate4Bpp(Bitmap bitmapIn, double angleDeg, byte bgColor = 8)
         {
             if (bitmapIn.PixelFormat != PixelFormat.Format4bppIndexed)
@@ -563,6 +603,34 @@ namespace MarkGeometriesLib.Classes
             }
         }
 
+        private static void DrawGeometry(Image<Gray, Byte> image, IMarkGeometry geometry, double scale, double pointSize, double lineWidth, Gray bgColor, Gray fgColor, bool shouldFill = true, LineType lineType = LineType.FourConnected)
+        {
+            if (geometry is MarkGeometryPoint point)
+            {
+                image.Draw(new CircleF(point, (float)(scale * pointSize)), fgColor, -1, lineType);
+            }
+            else if (geometry is MarkGeometryLine line)
+            {
+                image.Draw(line, fgColor, (int)Math.Round(scale * lineWidth), lineType);
+            }
+            else if (geometry is MarkGeometryCircle circle)
+            {
+                if (shouldFill)
+                    image.Draw(new CircleF(new PointF((float)circle.CentrePoint.X, (float)circle.CentrePoint.Y), (float)(circle.Radius)), fgColor, -1, lineType);
+                else
+                    image.Draw(new CircleF(new PointF((float)circle.CentrePoint.X, (float)circle.CentrePoint.Y), (float)(circle.Radius)), fgColor, (int)Math.Round(scale * lineWidth), lineType);
+            }
+            else if (geometry is MarkGeometryArc arc)
+            {
+                DrawPath(image, new MarkGeometryPath(arc), fgColor, (int)Math.Round(scale * lineWidth), shouldFill, lineType);
+            }
+            else if (geometry is MarkGeometryPath path)
+            {
+                DrawPath(image, path, fgColor, (int)Math.Round(scale * lineWidth), shouldFill, lineType);
+            }
+        }
+
+
         public static Bitmap RotateImage4Bpp(string imagePathIn, double angle, GIColor bgColor = GIColor.White, bool crop = false)
         {
             var __bgColor = new Gray(bgColor == GIColor.Black ? 0 : 255);
@@ -810,6 +878,131 @@ namespace MarkGeometriesLib.Classes
                 preferredBounds.Extents.Centre.Y,
                 preferredBounds.Extents.Width / preferredScaleFactor,  // size of processed DXF; use for alignment
                 preferredBounds.Extents.Height / preferredScaleFactor
+            );
+        }
+
+        public static (bool Success, double CentreX, double CentreY, double Width, double Height) To4BppImageRetainBounds(
+            Dictionary<int, List<IMarkGeometry>> coloredGeometries,
+            string[] imageFilePaths,
+            double dpiX = 720, double dpiY = 720,
+            double pixelSize = 25.4, double angle = 0,
+            double scaleX = 1, double scaleY = 1,
+            PixelFormat pixelFormat = PixelFormat.Format4bppIndexed,
+            OptimisationSetting optimisationSetting = OptimisationSetting.Speed,
+            double pointSize = 0.1, double lineWidth = 0.1,
+            bool shouldFill = true, byte defaultBgColor = 8,
+            bool shouldCloseGeometries = true,
+            double closureTolerance = 0.01
+        )
+        {
+            var __extents = GeometryExtents<double>.CreateDefaultDouble();
+            var __outputExtents = GeometryExtents<double>.CreateDefaultDouble();
+            var __coloredGeometries = new Dictionary<int, List<IMarkGeometry>>();
+
+            foreach (var key in coloredGeometries.Keys)
+            {
+                var geometries = shouldCloseGeometries ? GeometricArithmeticModule.StitchGeometries(coloredGeometries[key], closureTolerance) : coloredGeometries[key];
+                __coloredGeometries[key] = MarkGeometryTree.FromGeometries( geometries, Color.Black, Color.White);
+
+                // update extents
+                __extents = GeometryExtents<double>.Combine(__extents, GeometricArithmeticModule.CalculateExtents(geometries));
+            }
+
+            var scaleFactorX = (dpiX / pixelSize) * scaleX;
+            var scaleFactorY = (dpiY / pixelSize) * scaleY;
+            var scale = 0.5 * (scaleFactorX + scaleFactorY);
+
+            var transformMatrix = GeometricArithmeticModule.CombineTransformations(
+                GeometricArithmeticModule.GetTranslationTransformationMatrix(
+                    -__extents.Centre.X,
+                    -__extents.Centre.Y,
+                    -__extents.Centre.Z
+                ),
+                GeometricArithmeticModule.GetScalingTransformationMatrix(
+                    scaleFactorX,
+                    -scaleFactorY,
+                    1
+                ),
+                GeometricArithmeticModule.GetRotationTransformationMatrix(
+                    0, 0,
+                    GeometricArithmeticModule.ToRadians(
+                        angle
+                    )
+                ),
+                GeometricArithmeticModule.GetTranslationTransformationMatrix(
+                    __extents.Centre.X,
+                    __extents.Centre.Y,
+                    __extents.Centre.Z
+                )
+            );
+
+            // reset the extents
+            __extents = GeometryExtents<double>.CreateDefaultDouble();
+
+            foreach (var key in __coloredGeometries.Keys)
+            {
+                // add boundary to retain geometry's structure
+                __coloredGeometries[key].Add((IMarkGeometry)__extents.Boundary.Clone());
+
+                // apply transform matrix to geometries
+                for (int i = 0; i < __coloredGeometries[key].Count; i++)
+                    __coloredGeometries[key][i].Transform(transformMatrix);
+
+                // update the output extents
+                __outputExtents = GeometryExtents<double>.Combine(__outputExtents, GeometricArithmeticModule.CalculateExtents(__coloredGeometries[key]));
+
+                // don't forget to delete the added structure
+                __coloredGeometries[key].RemoveAt(__coloredGeometries[key].Count - 1);
+
+                // update the extents
+                __extents = GeometryExtents<double>.Combine(__extents, GeometricArithmeticModule.CalculateExtents(__coloredGeometries[key]));
+            }
+
+            // define image size
+            int imageWidth = (int)Math.Round(__extents.Width);
+            int imageHeight = (int)Math.Round(__extents.Height);
+
+            var image = new Image<Gray, Byte>(imageWidth, imageHeight);
+            var bitmap = new Bitmap(imageWidth, imageHeight, pixelFormat);
+
+            // Draw background
+            image.SetValue(new Gray(defaultBgColor));
+
+            foreach (var key in __coloredGeometries.Keys)
+            {
+
+                var __bgColor = new Gray(key);
+                var __fillColor = new Gray(key);
+
+                foreach (var pattern in __coloredGeometries[key])
+                {
+                    if (pattern is IMarkGeometryWrapper wrapper)
+                    {
+                        wrapper.BeginGetAll((geometry) =>
+                        {
+                            // align geometry's centre to origin
+                            GeometricArithmeticModule.Translate(geometry, -__extents.MinX, -__extents.MinY, -__extents.MinZ);
+                            DrawGeometry(image, geometry, scale, pointSize, lineWidth, __bgColor, __fillColor);
+                            return true;
+                        });
+                    }
+                    else
+                    {
+                        DrawGeometry(image, pattern, scale, pointSize, lineWidth, __bgColor, __fillColor);
+                    }
+                }
+            }
+
+            FastCopy4Bpp_Parallel(image, bitmap);
+            for (int i = 0; i < imageFilePaths.Count(); i++)
+                SaveAsBitmap(imageFilePaths[i], bitmap, dpiX, dpiY, optimisationSetting);
+
+            return (
+                true,                                // task successful
+                __outputExtents.Centre.X,              // centre of processed DXF; use for alignment
+                __outputExtents.Centre.Y,
+                __outputExtents.Width / scaleFactorX,  // size of processed DXF; use for alignment
+                __outputExtents.Height / scaleFactorY
             );
         }
 
@@ -1085,40 +1278,7 @@ namespace MarkGeometriesLib.Classes
         {
             if (shouldCloseGeometries)
             {
-                List<MarkGeometryPath> openGeometries = new List<MarkGeometryPath>();
-                List<IMarkGeometry> closedGeometries = new List<IMarkGeometry>();
-
-                for (int i = 0; i < geometriesIn.Count; i++)
-                {
-                    if (geometriesIn[i] is MarkGeometryLine line)
-                    {
-                        openGeometries.Add(new MarkGeometryPath(line));
-                    }
-                    else if (geometriesIn[i] is MarkGeometryArc arc)
-                    {
-                        if (Math.Abs(arc.Sweep % (2 * Math.PI)) <= 0.0001)
-                            closedGeometries.Add(new MarkGeometryPath(arc));
-                        else
-                            openGeometries.Add(new MarkGeometryPath(arc));
-                    }
-                    else if (geometriesIn[i] is MarkGeometryPath path)
-                    {
-                        if (path.IsClosed)
-                            closedGeometries.Add(path);
-                        else
-                            openGeometries.Add(path);
-                    }
-                    else
-                    {
-                        closedGeometries.Add(geometriesIn[i]);
-                    }
-                }
-
-                closedGeometries.AddRange(
-                    GeometricArithmeticModule.Simplify(openGeometries, closureTolerance)
-                );
-
-                geometriesIn = closedGeometries;
+                geometriesIn = GeometricArithmeticModule.StitchGeometries(geometriesIn, closureTolerance);
             }
 
             var geometriesAsTrees = MarkGeometryTree.FromGeometries(

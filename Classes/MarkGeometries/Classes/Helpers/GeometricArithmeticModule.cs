@@ -1513,6 +1513,53 @@ namespace MSolvLib.MarkGeometry
         }
 
         /// <summary>
+        /// Use method to stitch open geometries.
+        /// </summary>
+        /// <param name="geometriesIn">The geometries to stitch</param>
+        /// <param name="closureTolerance">The closure tolerance</param>
+        /// <returns></returns>
+        public static List<IMarkGeometry> StitchGeometries(
+            List<IMarkGeometry> geometriesIn,
+            double closureTolerance = 0.0001
+        )
+        {
+            var openGeometries = new List<MarkGeometryPath>();
+            var closedGeometries = new List<IMarkGeometry>();
+
+            for (int i = 0; i < geometriesIn.Count; i++)
+            {
+                if (geometriesIn[i] is MarkGeometryLine line)
+                {
+                    openGeometries.Add(new MarkGeometryPath(line));
+                }
+                else if (geometriesIn[i] is MarkGeometryArc arc)
+                {
+                    if (Math.Abs(arc.Sweep % (2 * Math.PI)) <= 0.0001)
+                        closedGeometries.Add(new MarkGeometryPath(arc));
+                    else
+                        openGeometries.Add(new MarkGeometryPath(arc));
+                }
+                else if (geometriesIn[i] is MarkGeometryPath path)
+                {
+                    if (path.IsClosed)
+                        closedGeometries.Add(path);
+                    else
+                        openGeometries.Add(path);
+                }
+                else
+                {
+                    closedGeometries.Add(geometriesIn[i]);
+                }
+            }
+
+            closedGeometries.AddRange(
+                Simplify(openGeometries, closureTolerance)
+            );
+
+            return closedGeometries;
+        }
+
+        /// <summary>
         ///     Combines connected lines to form path.
         /// </summary>
         /// <param name="lines">The list of lines</param>

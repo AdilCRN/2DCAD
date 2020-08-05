@@ -133,7 +133,7 @@ namespace MSolvLib.MarkGeometry.Helpers
             IMarkGeometry geometry = null;
 
             double radius = 0;
-            MarkGeometryPoint centre = new MarkGeometryPoint();
+            var centre = new MarkGeometryPoint() { LayerName = layerName };
 
             while (true)
             {
@@ -168,7 +168,7 @@ namespace MSolvLib.MarkGeometry.Helpers
 
                         double endAngle = double.Parse(readerIn.ReadLine());
 
-                        geometry = new MarkGeometryArc(centre, radius, startAngle, endAngle);
+                        geometry = new MarkGeometryArc(centre, radius, startAngle, endAngle) { LayerName = layerName };
                         return (layerName, geometry);
 
                     default:
@@ -199,7 +199,7 @@ namespace MSolvLib.MarkGeometry.Helpers
                     case "AcDbLine":
                         var startPoint = TryParsePoint(readerIn);
                         var endPoint = TryParsePoint(readerIn);
-                        geometry = new MarkGeometryLine(startPoint, endPoint);
+                        geometry = new MarkGeometryLine(startPoint, endPoint) { LayerName=layerName };
                         return (layerName, geometry);
                     default:
                         throw new Exception($"Matched circle attribute is not supported: `{line}`");
@@ -236,7 +236,7 @@ namespace MSolvLib.MarkGeometry.Helpers
 
                         double radius = double.Parse(readerIn.ReadLine());
 
-                        geometry = new MarkGeometryCircle(centre, radius);
+                        geometry = new MarkGeometryCircle(centre, radius) { LayerName = layerName };
                         return (layerName, geometry);
                     default:
                         throw new Exception($"Matched circle attribute is not supported: `{line}`");
