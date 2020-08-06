@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{AE294AEA-6669-4AB5-9976-EF212215D9B4}</ProjectGuid>
+    <ProjectGuid>{10A939BB-BC65-4A57-9ABB-3318E271687B}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>MarkGeometriesLib</RootNamespace>
     <AssemblyName>MarkGeometriesLib</AssemblyName>
