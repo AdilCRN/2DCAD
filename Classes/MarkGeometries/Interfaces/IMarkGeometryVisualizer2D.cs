@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using MarkGeometriesLib.Classes.MarkGeometries.Classes.Geometries;
+using System.Collections.Generic;
 using System.Drawing;
 
 namespace MSolvLib.MarkGeometry
@@ -8,6 +9,7 @@ namespace MSolvLib.MarkGeometry
         // drawing interfaces
         void Draw2D(MarkGeometryArc arc, bool shouldShowVertex);
         void Draw2D(MarkGeometryCircle circle, bool shouldShowVertex);
+        void Draw2D(MarkGeometryCircleDiameter circle, bool shouldShowVertex);
         void Draw2D(MarkGeometryLine line, bool shouldShowVertex);
         void Draw2D(MarkGeometryPath path, bool shouldShowVertex);
         void Draw2D(List<MarkGeometryLine> lines, bool shouldShowVertex);

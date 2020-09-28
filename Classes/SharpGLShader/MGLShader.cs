@@ -1,4 +1,5 @@
-﻿using MathNet.Numerics.Distributions;
+﻿using MarkGeometriesLib.Classes.MarkGeometries.Classes.Geometries;
+using MathNet.Numerics.Distributions;
 using MSolvLib.Classes.MarkGeometries.Classes.Helpers;
 using MSolvLib.MarkGeometry;
 using SharpGL;
@@ -128,7 +129,7 @@ namespace SharpGLShader
 
         #region Section: Resetting View
 
-        public virtual void Reset()
+        public virtual void Reset(bool shouldResetView = true)
         {
             // reset extents
             MinX = double.MaxValue;
@@ -148,7 +149,8 @@ namespace SharpGLShader
             // reset mouse position
             Mouse = new MVertex();
 
-            ResetView();
+            if (shouldResetView)
+                ResetView();
         }
 
         public virtual void ResetView()
@@ -447,7 +449,7 @@ namespace SharpGLShader
         {
             if (!_renderOnNextPass)
                 return;
-
+            //add code here
             try
             {
                 //  clear the color buffer.
@@ -466,6 +468,7 @@ namespace SharpGLShader
                 gl.Translate(_panOffset.X / _trueScale, _panOffset.Y / _trueScale, 0);
 
                 // set sizes
+                //add code here
                 gl.PointSize((float)(_trueScale * DefaultPointSize));
                 gl.LineWidth((float)(_trueScale * DefaultLineWidth));
 
@@ -484,12 +487,13 @@ namespace SharpGLShader
         protected void Draw(OpenGL gl)
         {
             // draw contents in buffer
+            //add code here to change order of drawing
+            Draw(gl, OpenGL.GL_LINES, _lines);
             Draw(gl, OpenGL.GL_POINTS, _points);
             for (int i = 0; i < _openPolylines.Count; i++)
                 Draw(gl, OpenGL.GL_LINE_STRIP, _openPolylines[i]?.Vertices, _openPolylines[i]?.Color);
             for (int i = 0; i < _closedPolylines.Count; i++)
                 Draw(gl, OpenGL.GL_LINE_LOOP, _closedPolylines[i]?.Vertices, _closedPolylines[i]?.Color);
-            Draw(gl, OpenGL.GL_LINES, _lines);
         }
 
         protected void Draw(OpenGL gl, double[] color)
@@ -666,19 +670,21 @@ namespace SharpGLShader
 
         public virtual void Zoom(double delta = 0)
         {
-            double tmpZoom = _zoom;
-            _zoom = GeometricArithmeticModule.Constrain(
-                _zoom + ((delta > 0 ? _zoomFactor : -_zoomFactor) * _trueScale),
-                0.001,
-                1000
-            );
+            //changed minRange constrain to 1 instead of 0.001 
+            //to limit zoom out
+                double tmpZoom = _zoom;
+                _zoom = GeometricArithmeticModule.Constrain(
+                    _zoom + ((delta > 0 ? _zoomFactor : -_zoomFactor) * _trueScale),
+                    1,
+                    1000
+                );
 
-            double dZoom = _zoom - tmpZoom;
+                double dZoom = _zoom - tmpZoom;
 
-            _panOffset.X -= (Mouse.X + _cadOffset.X) * _scale * dZoom;
-            _panOffset.Y -= (Mouse.Y + _cadOffset.Y) * _scale * dZoom;
+                _panOffset.X -= (Mouse.X + _cadOffset.X) * _scale * dZoom;
+                _panOffset.Y -= (Mouse.Y + _cadOffset.Y) * _scale * dZoom;
 
-            Render();
+                Render();
         }
 
         public virtual void UpdateMouse(double xNorm, double yNorm)

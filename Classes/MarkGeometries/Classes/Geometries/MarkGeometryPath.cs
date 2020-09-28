@@ -12,7 +12,7 @@ namespace MSolvLib.MarkGeometry
 {
     public class MarkGeometryPath : MarkGeometry, IXmlSerializable
     {
-        public static double ClosureTolerance { get; set; } = 0.0001;
+        public static double ClosureTolerance { get; set; } = 5;
 
         public override string Name => "Path";
         public MarkGeometryPoint CentrePoint { get; set; } = new MarkGeometryPoint(); 
